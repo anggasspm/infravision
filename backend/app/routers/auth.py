@@ -1,21 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from jose import JWTError
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserRegister, UserLogin, TokenResponse, UserResponse
-from app.core.security import hash_password, verify_password, create_access_token
-from app.core.security import hash_password, verify_password, create_access_token, get_current_user
+from app.schemas.user import (
+    UserRegister, UserLogin, TokenResponse, UserResponse,
+    RefreshRequest, AccessTokenResponse
+)
+from app.core.security import (
+    hash_password, verify_password, create_access_token,
+    create_refresh_token, decode_token, get_current_user
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 def register(data: UserRegister, db: Session = Depends(get_db)):
-    # Cek email sudah ada atau belum
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
-    
-    # Buat user baru
+
     user = User(
         name=data.name,
         email=data.email.lower(),
@@ -25,8 +29,9 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    token = create_access_token({"sub": user.id, "role": user.role})
-    return TokenResponse(access_token=token, user=UserResponse.from_orm(user))
+    access_token = create_access_token({"sub": user.id, "role": user.role})
+    refresh_token = create_refresh_token({"sub": user.id, "role": user.role})
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=UserResponse.from_orm(user))
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, db: Session = Depends(get_db)):
@@ -34,8 +39,26 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Email atau password salah")
 
-    token = create_access_token({"sub": user.id, "role": user.role})
-    return TokenResponse(access_token=token, user=UserResponse.from_orm(user))
+    access_token = create_access_token({"sub": user.id, "role": user.role})
+    refresh_token = create_refresh_token({"sub": user.id, "role": user.role})
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, user=UserResponse.from_orm(user))
+
+@router.post("/refresh", response_model=AccessTokenResponse)
+def refresh_access_token(data: RefreshRequest, db: Session = Depends(get_db)):
+    try:
+        payload = decode_token(data.refresh_token)
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token tidak valid atau expired")
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Token bukan refresh token")
+
+    user = db.query(User).filter(User.id == payload.get("sub")).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    new_access_token = create_access_token({"sub": user.id, "role": user.role})
+    return AccessTokenResponse(access_token=new_access_token)
 
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
