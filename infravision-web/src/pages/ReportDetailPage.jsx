@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
-
+ 
 const SEVERITY_COLORS = {
   low: "bg-green-100 text-green-800",
   medium: "bg-yellow-100 text-yellow-800",
