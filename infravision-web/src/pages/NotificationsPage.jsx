@@ -7,15 +7,16 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await api.get("/notifications");
-      setNotifications(res.data);
+        const res = await api.get("/notifications");
+        // Cek apakah balikan API adalah array murni, atau object yang punya properti 'items'
+        const data = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        setNotifications(data);
     } catch {
-      // endpoint belum ada, gunakan array kosong
-      setNotifications([]);
+        setNotifications([]);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    };
 
   useEffect(() => {
     fetchNotifications();
@@ -32,7 +33,9 @@ export default function NotificationsPage() {
     } catch {}
   };
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = Array.isArray(notifications) 
+    ? notifications.filter((n) => !n.is_read).length 
+    : 0;
 
   if (loading) return <div className="p-8 text-center text-gray-400">Memuat notifikasi...</div>;
 
