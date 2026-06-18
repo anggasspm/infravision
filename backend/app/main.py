@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.routers import auth
+from app.routers import auth, reports
 
-# Buat semua tabel otomatis
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -12,7 +11,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS - izinkan frontend akses API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -22,6 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(reports.router)
 
 @app.get("/")
 def root():
