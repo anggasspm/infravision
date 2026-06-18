@@ -9,6 +9,7 @@ from app.schemas.report import (
     ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES
 )
 from app.core.security import get_current_user
+from app.services.ai_service import mock_classify, assess_severity, calculate_priority
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -34,7 +35,21 @@ def create_report(
     db.add(report)
     db.commit()
     db.refresh(report)
-    # TODO Sprint 3: trigger AI pipeline (klasifikasi, severity, priority, duplicate check)
+
+    # Trigger AI pipeline otomatis (saat ini di-mock; ganti mock_classify dengan
+    # inference YOLOv8 asli begitu model siap, bagian severity & priority tidak perlu diubah)
+    category, confidence, bbox = mock_classify(report.image_url)
+    severity, _ = assess_severity(bbox, report.description)
+    priority_score, _ = calculate_priority(severity=severity, age_hours=0)
+
+    report.category = category
+    report.ai_confidence = confidence
+    report.severity = severity
+    report.priority_score = priority_score
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+
     return report
 
 @router.get("", response_model=ReportListResponse)
