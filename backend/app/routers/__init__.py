@@ -1,7 +1,9 @@
-from app.routers import auth
-from app.routers import reports
-from app.routers import ai
-from app.routers import gis
-from app.routers import admin
-from app.routers import analytics
-from app.routers import notifications
+from infravision.backend.app.routers import auth
+from infravision.backend.app.routers import reports
+from infravision.backend.app.routers import ai
+from infravision.backend.app.routers import gis
+from infravision.backend.app.routers import admin
+from infravision.backend.app.routers import analytics
+from infravision.backend.app.routers import notifications
+
+__all__ = ["auth", "reports", "ai", "gis", "admin", "analytics", "notifications"]
