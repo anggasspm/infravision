@@ -1,1 +1,2 @@
 from app.services.ai_service import mock_classify, assess_severity, calculate_priority
+from app.services.duplicate_service import find_duplicate, haversine_distance_meters
