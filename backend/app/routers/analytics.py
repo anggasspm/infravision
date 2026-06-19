@@ -2,14 +2,15 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from collections import Counter
-from app.database import get_db
-from app.models.report import Report
-from app.models.report_history import ReportHistory
-from app.schemas.analytics import AnalyticsSummary, CategoryDistribution, DailyTrend
-from app.schemas.common import SuccessResponse
-from app.core.security import require_role
+from infravision.backend.app.database import get_db
+from infravision.backend.app.models.report import Report
+from infravision.backend.app.models.report_history import ReportHistory
+from infravision.backend.app.schemas.analytics import AnalyticsSummary, CategoryDistribution, DailyTrend
+from infravision.backend.app.schemas.common import SuccessResponse
+from infravision.backend.app.core.security import require_role
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
+
 
 @router.get("/summary", response_model=SuccessResponse[AnalyticsSummary])
 def get_summary(

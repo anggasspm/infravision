@@ -1,3 +1,5 @@
+import random
+
 import os
 import tempfile
 from pathlib import Path
@@ -104,6 +106,7 @@ SEVERITY_KEYWORDS = {
     "high": ["besar", "dalam", "luas"],
 }
 
+
 def assess_severity(bbox: BoundingBox, description: str) -> tuple[str, float]:
     if bbox is None:
         return "low", 0.0
@@ -129,6 +132,7 @@ def assess_severity(bbox: BoundingBox, description: str) -> tuple[str, float]:
 
 
 SEVERITY_WEIGHTS = {"low": 25, "medium": 50, "high": 75, "critical": 100}
+
 
 def calculate_priority(
     severity: str,

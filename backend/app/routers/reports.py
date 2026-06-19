@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
-from app.database import get_db
-from app.models.report import Report
-from app.models.report_history import ReportHistory
-from app.schemas.report import (
+from infravision.backend.app.database import get_db
+from infravision.backend.app.models.report import Report
+from infravision.backend.app.models.report_history import ReportHistory
+from infravision.backend.app.schemas.report import (
     ReportCreate, ReportResponse, ReportListResponse,
     ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES,
     DuplicateCheckRequest, DuplicateCheckResponse,
 )
+from infravision.backend.app.schemas.common import SuccessResponse
+from infravision.backend.app.core.security import get_current_user, require_role
+from infravision.backend.app.services.ai_service import mock_classify, assess_severity, calculate_priority
+from infravision.backend.app.services.duplicate_service import find_duplicate
+from infravision.backend.app.services.workflow_service import transition_report_status
 from app.schemas.common import SuccessResponse
 from app.core.security import get_current_user, require_role
 import os
@@ -22,6 +27,7 @@ ALLOWED_SORT_FIELDS = {
     "created_at": Report.created_at,
     "priority_score": Report.priority_score,
 }
+
 
 @router.post("", response_model=SuccessResponse[ReportResponse], status_code=201)
 def create_report(
@@ -72,6 +78,7 @@ def create_report(
 
     return SuccessResponse(data=ReportResponse.from_orm(report), message="Laporan berhasil dibuat")
 
+
 @router.get("", response_model=SuccessResponse[ReportListResponse])
 def list_reports(
     status: Optional[str] = None,
@@ -99,6 +106,7 @@ def list_reports(
     result = ReportListResponse(total=total, page=page, page_size=page_size, items=items)
     return SuccessResponse(data=result, message="OK")
 
+
 @router.get("/{report_id}", response_model=SuccessResponse[ReportDetailResponse])
 def get_report_detail(report_id: str, db: Session = Depends(get_db)):
     report = db.query(Report).filter(Report.id == report_id).first()
@@ -115,6 +123,7 @@ def get_report_detail(report_id: str, db: Session = Depends(get_db)):
     detail = ReportDetailResponse(**report_data, history=history)
     return SuccessResponse(data=detail, message="OK")
 
+
 @router.put("/{report_id}/status", response_model=SuccessResponse[ReportResponse])
 def update_report_status(
     report_id: str,
@@ -123,7 +132,10 @@ def update_report_status(
     db: Session = Depends(get_db)
 ):
     if data.status not in VALID_STATUSES:
-        raise HTTPException(status_code=400, detail=f"Status tidak valid. Pilih salah satu: {', '.join(VALID_STATUSES)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Status tidak valid. Pilih salah satu: {
+                ', '.join(VALID_STATUSES)}")
 
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
@@ -131,6 +143,7 @@ def update_report_status(
 
     report = transition_report_status(report, data.status, current_user["id"], db)
     return SuccessResponse(data=ReportResponse.from_orm(report), message="Status laporan berhasil diperbarui")
+
 
 @router.post("/check-duplicate", response_model=SuccessResponse[DuplicateCheckResponse])
 def check_duplicate(

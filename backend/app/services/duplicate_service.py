@@ -5,6 +5,7 @@ import requests
 from PIL import Image
 import imagehash
 
+
 def haversine_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371000  # radius bumi dalam meter
     phi1, phi2 = radians(lat1), radians(lat2)
@@ -12,6 +13,7 @@ def haversine_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float
     dlambda = radians(lon2 - lon1)
     a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
     return 2 * R * atan2(sqrt(a), sqrt(1 - a))
+
 
 def get_phash(image_url: str) -> Optional[imagehash.ImageHash]:
     """Unduh gambar & hitung perceptual hash. None kalau URL gagal diakses/bukan gambar valid."""
@@ -23,11 +25,13 @@ def get_phash(image_url: str) -> Optional[imagehash.ImageHash]:
     except Exception:
         return None
 
+
 def image_similarity(hash_a: imagehash.ImageHash, hash_b: imagehash.ImageHash) -> float:
     """0.0-1.0, 1.0 = identik. phash default 64-bit (8x8)."""
     max_bits = len(hash_a.hash) ** 2
     distance = hash_a - hash_b
     return 1 - (distance / max_bits)
+
 
 def find_duplicate(
     new_lat: float,

@@ -1,7 +1,8 @@
 from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from app.database import Base
+from infravision.backend.app.database import Base
 import uuid
+
 
 class Notification(Base):
     __tablename__ = "notifications"

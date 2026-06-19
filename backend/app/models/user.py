@@ -1,8 +1,7 @@
 from sqlalchemy import Column, String, Enum
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import text
-from app.database import Base
+from infravision.backend.app.database import Base
 import uuid
+
 
 class User(Base):
     __tablename__ = "users"
