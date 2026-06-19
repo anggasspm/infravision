@@ -24,13 +24,15 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/infravision-backend:latest
 
       - name: Build & Push — ai_service
+        # TODO: aktifkan lagi kalau folder ./ai_service udah dibuat & ada Dockerfile-nya
+        if: false
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/infravision-ai:latest ./ai_service
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/infravision-ai:latest
 
       - name: Build & Push — frontend
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/infravision-frontend:latest ./frontend
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/infravision-frontend:latest ./infravision-web
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/infravision-frontend:latest
 
       - name: Deploy ke EC2 via SSH
@@ -55,4 +57,4 @@ jobs:
             # Bersihkan image lama
             docker image prune -f
 
-            echo "✅ Deploy selesai: $(date)"
+            echo "Deploy selesai: $(date)"
