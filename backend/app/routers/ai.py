@@ -5,21 +5,24 @@ from app.schemas.ai import (
     SeverityRequest, SeverityResponse,
     PriorityRequest, PriorityResponse,
 )
+from app.schemas.common import SuccessResponse
 from app.services.ai_service import mock_classify, assess_severity, calculate_priority
 
 router = APIRouter(prefix="/ai", tags=["AI Pipeline"])
 
-@router.post("/classify", response_model=ClassifyResponse)
+@router.post("/classify", response_model=SuccessResponse[ClassifyResponse])
 def classify_image(data: ClassifyRequest, current_user: dict = Depends(get_current_user)):
     category, confidence, bbox = mock_classify(data.image_url)
-    return ClassifyResponse(category=category, confidence=confidence, bbox=bbox)
+    result = ClassifyResponse(category=category, confidence=confidence, bbox=bbox)
+    return SuccessResponse(data=result, message="OK")
 
-@router.post("/severity", response_model=SeverityResponse)
+@router.post("/severity", response_model=SuccessResponse[SeverityResponse])
 def get_severity(data: SeverityRequest, current_user: dict = Depends(get_current_user)):
     severity, area_ratio = assess_severity(data.bbox, data.description)
-    return SeverityResponse(severity=severity, area_ratio=area_ratio)
+    result = SeverityResponse(severity=severity, area_ratio=area_ratio)
+    return SuccessResponse(data=result, message="OK")
 
-@router.post("/priority", response_model=PriorityResponse)
+@router.post("/priority", response_model=SuccessResponse[PriorityResponse])
 def get_priority(data: PriorityRequest, current_user: dict = Depends(get_current_user)):
     score, level = calculate_priority(
         severity=data.severity,
@@ -27,4 +30,5 @@ def get_priority(data: PriorityRequest, current_user: dict = Depends(get_current
         location_importance=data.location_importance,
         age_hours=data.age_hours,
     )
-    return PriorityResponse(priority_score=score, priority_level=level)
+    result = PriorityResponse(priority_score=score, priority_level=level)
+    return SuccessResponse(data=result, message="OK")
