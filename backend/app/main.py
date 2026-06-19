@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.database import Base, engine
-from app.routers import auth, reports, ai, gis
+from app.routers import auth, reports, ai, gis, admin, analytics, notifications
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,10 +22,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "error": {"code": str(exc.status_code), "message": exc.detail}},
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"success": False, "error": {"code": "422", "message": "Validasi input gagal", "details": exc.errors()}},
+    )
+
 app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(ai.router)
 app.include_router(gis.router)
+app.include_router(admin.router)
+app.include_router(analytics.router)
+app.include_router(notifications.router)
 
 @app.get("/")
 def root():
