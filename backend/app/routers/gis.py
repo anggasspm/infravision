@@ -4,10 +4,11 @@ from typing import Optional
 from app.database import get_db
 from app.models.report import Report
 from app.schemas.gis import GeoJSONFeatureCollection, GeoJSONFeature, GeoJSONGeometry
+from app.schemas.common import SuccessResponse
 
 router = APIRouter(prefix="/map", tags=["GIS"])
 
-@router.get("/reports", response_model=GeoJSONFeatureCollection)
+@router.get("/reports", response_model=SuccessResponse[GeoJSONFeatureCollection])
 def get_reports_geojson(
     status: Optional[str] = None,
     severity: Optional[str] = None,
@@ -38,4 +39,5 @@ def get_reports_geojson(
         )
         for r in reports
     ]
-    return GeoJSONFeatureCollection(features=features)
+    result = GeoJSONFeatureCollection(features=features)
+    return SuccessResponse(data=result, message="OK")

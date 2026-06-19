@@ -9,9 +9,11 @@ from app.schemas.report import (
     ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES,
     DuplicateCheckRequest, DuplicateCheckResponse,
 )
-from app.core.security import get_current_user
+from app.schemas.common import SuccessResponse
+from app.core.security import get_current_user, require_role
 from app.services.ai_service import mock_classify, assess_severity, calculate_priority
 from app.services.duplicate_service import find_duplicate
+from app.services.workflow_service import transition_report_status
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -20,7 +22,7 @@ ALLOWED_SORT_FIELDS = {
     "priority_score": Report.priority_score,
 }
 
-@router.post("", response_model=ReportResponse, status_code=201)
+@router.post("", response_model=SuccessResponse[ReportResponse], status_code=201)
 def create_report(
     data: ReportCreate,
     current_user: dict = Depends(get_current_user),
@@ -63,9 +65,9 @@ def create_report(
     db.commit()
     db.refresh(report)
 
-    return report
+    return SuccessResponse(data=ReportResponse.from_orm(report), message="Laporan berhasil dibuat")
 
-@router.get("", response_model=ReportListResponse)
+@router.get("", response_model=SuccessResponse[ReportListResponse])
 def list_reports(
     status: Optional[str] = None,
     severity: Optional[str] = None,
@@ -89,9 +91,10 @@ def list_reports(
 
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
-    return ReportListResponse(total=total, page=page, page_size=page_size, items=items)
+    result = ReportListResponse(total=total, page=page, page_size=page_size, items=items)
+    return SuccessResponse(data=result, message="OK")
 
-@router.get("/{report_id}", response_model=ReportDetailResponse)
+@router.get("/{report_id}", response_model=SuccessResponse[ReportDetailResponse])
 def get_report_detail(report_id: str, db: Session = Depends(get_db)):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
@@ -104,13 +107,14 @@ def get_report_detail(report_id: str, db: Session = Depends(get_db)):
         .all()
     )
     report_data = ReportResponse.from_orm(report).model_dump()
-    return ReportDetailResponse(**report_data, history=history)
+    detail = ReportDetailResponse(**report_data, history=history)
+    return SuccessResponse(data=detail, message="OK")
 
-@router.put("/{report_id}/status", response_model=ReportResponse)
+@router.put("/{report_id}/status", response_model=SuccessResponse[ReportResponse])
 def update_report_status(
     report_id: str,
     data: ReportStatusUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("admin", "maintenance")),
     db: Session = Depends(get_db)
 ):
     if data.status not in VALID_STATUSES:
@@ -120,22 +124,10 @@ def update_report_status(
     if not report:
         raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
 
-    previous_status = report.status
-    report.status = data.status
-    db.add(report)
+    report = transition_report_status(report, data.status, current_user["id"], db)
+    return SuccessResponse(data=ReportResponse.from_orm(report), message="Status laporan berhasil diperbarui")
 
-    history_entry = ReportHistory(
-        report_id=report.id,
-        previous_status=previous_status,
-        current_status=data.status,
-        changed_by=current_user["id"]
-    )
-    db.add(history_entry)
-    db.commit()
-    db.refresh(report)
-    return report
-
-@router.post("/check-duplicate", response_model=DuplicateCheckResponse)
+@router.post("/check-duplicate", response_model=SuccessResponse[DuplicateCheckResponse])
 def check_duplicate(
     data: DuplicateCheckRequest,
     current_user: dict = Depends(get_current_user),
@@ -150,9 +142,10 @@ def check_duplicate(
         radius_meters=data.radius_meters,
         similarity_threshold=data.similarity_threshold,
     )
-    return DuplicateCheckResponse(
+    result = DuplicateCheckResponse(
         is_duplicate=is_dup,
         duplicate_report_id=matched_id,
         distance_meters=distance,
         image_similarity=similarity,
     )
+    return SuccessResponse(data=result, message="OK")
