@@ -23,7 +23,6 @@ class ClassifyResponse(BaseModel):
     category: str
     confidence: float
     bbox: BoundingBox
-    is_mocked: bool = True
 
 class SeverityRequest(BaseModel):
     bbox: BoundingBox
