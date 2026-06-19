@@ -1,0 +1,73 @@
+name: CI — Lint & Test
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-lint-test:
+    name: Backend (Python)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: infravision_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Lint dengan flake8
+        run: flake8 backend/ --max-line-length=120 --exclude=migrations
+
+      - name: Run migrations (test DB)
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/infravision_test
+        run: |
+          cd backend
+          alembic upgrade head
+
+      - name: Run pytest
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/infravision_test
+          SECRET_KEY: test_secret_key_for_ci_only
+        run: pytest backend/tests/ -v --tb=short --cov=app --cov-report=term
+
+  frontend-lint:
+    name: Frontend (Node.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Lint dengan ESLint
+        run: cd frontend && npm run lint

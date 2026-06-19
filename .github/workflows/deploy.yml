@@ -1,0 +1,58 @@
+name: Deploy to Production (EC2)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    name: Build Images & Deploy ke EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login ke Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push — backend
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/infravision-backend:latest ./backend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/infravision-backend:latest
+
+      - name: Build & Push — ai_service
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/infravision-ai:latest ./ai_service
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/infravision-ai:latest
+
+      - name: Build & Push — frontend
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/infravision-frontend:latest ./frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/infravision-frontend:latest
+
+      - name: Deploy ke EC2 via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key:      ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/ubuntu/infravision
+
+            # Pull image terbaru
+            docker compose pull backend ai_service frontend
+
+            # Restart hanya service yang berubah (postgres & nginx tetap jalan)
+            docker compose up -d --no-deps backend ai_service frontend
+
+            # Jalankan migrasi DB baru (idempotent)
+            docker compose exec -T backend alembic upgrade head
+
+            # Bersihkan image lama
+            docker image prune -f
+
+            echo "✅ Deploy selesai: $(date)"
