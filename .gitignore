@@ -1,5 +1,13 @@
-.env
+# Python
+venv/
 __pycache__/
 *.pyc
+.env
+
+# Database lokal
 *.db
-venv/
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db

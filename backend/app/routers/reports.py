@@ -14,6 +14,12 @@ from infravision.backend.app.core.security import get_current_user, require_role
 from infravision.backend.app.services.ai_service import mock_classify, assess_severity, calculate_priority
 from infravision.backend.app.services.duplicate_service import find_duplicate
 from infravision.backend.app.services.workflow_service import transition_report_status
+from app.schemas.common import SuccessResponse
+from app.core.security import get_current_user, require_role
+import os
+from app.services.ai_service import classify_image, download_image_temp, assess_severity, calculate_priority
+from app.services.duplicate_service import find_duplicate
+from app.services.workflow_service import transition_report_status
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -41,7 +47,11 @@ def create_report(
     db.commit()
     db.refresh(report)
 
-    category, confidence, bbox = mock_classify(report.image_url)
+    local_path = download_image_temp(report.image_url)
+    try:
+        category, confidence, bbox = classify_image(local_path)
+    finally:
+        os.unlink(local_path)
     severity, _ = assess_severity(bbox, report.description)
     priority_score, _ = calculate_priority(severity=severity, age_hours=0)
 
