@@ -1,13 +1,16 @@
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 
+
 class CategoryDistribution(BaseModel):
     category: str
     count: int
 
+
 class DailyTrend(BaseModel):
     date: str
     count: int
+
 
 class AnalyticsSummary(BaseModel):
     total_reports: int

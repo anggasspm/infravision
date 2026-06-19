@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
+
 class NotificationResponse(BaseModel):
     id: str
     report_id: Optional[str] = None
@@ -11,6 +12,7 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class NotificationListResponse(BaseModel):
     total: int
