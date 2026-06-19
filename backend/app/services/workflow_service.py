@@ -22,7 +22,6 @@ STATUS_LABELS_ID = {
     "completed": "Selesai",
 }
 
-
 def transition_report_status(report: Report, new_status: str, changed_by: str, db: Session) -> Report:
     """Validasi transisi sesuai state machine PRD, catat ke report_history, kirim notifikasi ke pelapor."""
     current_status = report.status
