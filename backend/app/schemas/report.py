@@ -23,6 +23,7 @@ class ReportResponse(BaseModel):
     priority_score: Optional[int] = None
     status: str
     is_duplicate: bool
+    assigned_to: Optional[str] = None
     created_at: datetime
 
     class Config:
