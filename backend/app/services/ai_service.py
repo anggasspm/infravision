@@ -1,5 +1,4 @@
 import random
-from infravision.backend.app.schemas.ai import DAMAGE_CATEGORIES, BoundingBox
 
 import os
 import tempfile
