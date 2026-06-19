@@ -4,11 +4,13 @@ from datetime import datetime
 
 VALID_STATUSES = ["pending", "verified", "assigned", "in_progress", "under_repair", "completed"]
 
+
 class ReportCreate(BaseModel):
     description: str
     image_url: str
     latitude: float
     longitude: float
+
 
 class ReportResponse(BaseModel):
     id: str
@@ -29,14 +31,17 @@ class ReportResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ReportListResponse(BaseModel):
     total: int
     page: int
     page_size: int
     items: List[ReportResponse]
 
+
 class ReportStatusUpdate(BaseModel):
     status: str = Field(..., description=f"Salah satu dari: {', '.join(VALID_STATUSES)}")
+
 
 class ReportHistoryItem(BaseModel):
     id: str
@@ -48,8 +53,10 @@ class ReportHistoryItem(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ReportDetailResponse(ReportResponse):
     history: List[ReportHistoryItem] = []
+
 
 class DuplicateCheckRequest(BaseModel):
     latitude: float
@@ -57,6 +64,7 @@ class DuplicateCheckRequest(BaseModel):
     image_url: str
     radius_meters: float = 50
     similarity_threshold: float = 0.85
+
 
 class DuplicateCheckResponse(BaseModel):
     is_duplicate: bool

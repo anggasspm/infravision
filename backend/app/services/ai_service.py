@@ -1,5 +1,6 @@
 import random
-from app.schemas.ai import DAMAGE_CATEGORIES, BoundingBox
+from infravision.backend.app.schemas.ai import DAMAGE_CATEGORIES, BoundingBox
+
 
 def mock_classify(image_url: str) -> tuple[str, float, BoundingBox]:
     """
@@ -24,6 +25,7 @@ SEVERITY_KEYWORDS = {
     "high": ["besar", "dalam", "luas"],
 }
 
+
 def assess_severity(bbox: BoundingBox, description: str) -> tuple[str, float]:
     """Rule-based severity: luas bbox relatif terhadap frame + keyword di deskripsi."""
     area_ratio = max(0.0, (bbox.x_max - bbox.x_min) * (bbox.y_max - bbox.y_min))
@@ -47,6 +49,7 @@ def assess_severity(bbox: BoundingBox, description: str) -> tuple[str, float]:
 
 
 SEVERITY_WEIGHTS = {"low": 25, "medium": 50, "high": 75, "critical": 100}
+
 
 def calculate_priority(
     severity: str,

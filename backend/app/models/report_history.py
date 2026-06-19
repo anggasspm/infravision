@@ -1,7 +1,8 @@
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from app.database import Base
+from infravision.backend.app.database import Base
 import uuid
+
 
 class ReportHistory(Base):
     __tablename__ = "report_history"

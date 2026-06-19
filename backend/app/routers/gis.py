@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Optional
-from app.database import get_db
-from app.models.report import Report
-from app.schemas.gis import GeoJSONFeatureCollection, GeoJSONFeature, GeoJSONGeometry
-from app.schemas.common import SuccessResponse
+from infravision.backend.app.database import get_db
+from infravision.backend.app.models.report import Report
+from infravision.backend.app.schemas.gis import GeoJSONFeatureCollection, GeoJSONFeature, GeoJSONGeometry
+from infravision.backend.app.schemas.common import SuccessResponse
 
 router = APIRouter(prefix="/map", tags=["GIS"])
+
 
 @router.get("/reports", response_model=SuccessResponse[GeoJSONFeatureCollection])
 def get_reports_geojson(

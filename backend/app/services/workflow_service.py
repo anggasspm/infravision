@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from app.models.report import Report
-from app.models.report_history import ReportHistory
-from app.services.notification_service import create_notification
+from infravision.backend.app.models.report import Report
+from infravision.backend.app.models.report_history import ReportHistory
+from infravision.backend.app.services.notification_service import create_notification
 
 STATE_TRANSITIONS = {
     "pending": ["verified"],
@@ -22,6 +22,7 @@ STATUS_LABELS_ID = {
     "completed": "Selesai",
 }
 
+
 def transition_report_status(report: Report, new_status: str, changed_by: str, db: Session) -> Report:
     """Validasi transisi sesuai state machine PRD, catat ke report_history, kirim notifikasi ke pelapor."""
     current_status = report.status
@@ -31,7 +32,7 @@ def transition_report_status(report: Report, new_status: str, changed_by: str, d
         raise HTTPException(
             status_code=400,
             detail=f"Tidak bisa pindah dari status '{current_status}' ke '{new_status}'. "
-                   f"Status valid selanjutnya: {allowed_next or 'tidak ada (status final)'}"
+            f"Status valid selanjutnya: {allowed_next or 'tidak ada (status final)'}"
         )
 
     previous_status = report.status
