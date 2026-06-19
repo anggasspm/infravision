@@ -6,10 +6,12 @@ from app.models.report import Report
 from app.models.report_history import ReportHistory
 from app.schemas.report import (
     ReportCreate, ReportResponse, ReportListResponse,
-    ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES
+    ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES,
+    DuplicateCheckRequest, DuplicateCheckResponse,
 )
 from app.core.security import get_current_user
 from app.services.ai_service import mock_classify, assess_severity, calculate_priority
+from app.services.duplicate_service import find_duplicate
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -36,16 +38,27 @@ def create_report(
     db.commit()
     db.refresh(report)
 
-    # Trigger AI pipeline otomatis (saat ini di-mock; ganti mock_classify dengan
-    # inference YOLOv8 asli begitu model siap, bagian severity & priority tidak perlu diubah)
     category, confidence, bbox = mock_classify(report.image_url)
     severity, _ = assess_severity(bbox, report.description)
     priority_score, _ = calculate_priority(severity=severity, age_hours=0)
+
+    candidates = (
+        db.query(Report.id, Report.latitude, Report.longitude, Report.image_url)
+        .filter(Report.id != report.id)
+        .all()
+    )
+    is_dup, _, _, _ = find_duplicate(
+        new_lat=report.latitude,
+        new_lon=report.longitude,
+        new_image_url=report.image_url,
+        candidates=candidates,
+    )
 
     report.category = category
     report.ai_confidence = confidence
     report.severity = severity
     report.priority_score = priority_score
+    report.is_duplicate = is_dup
     db.add(report)
     db.commit()
     db.refresh(report)
@@ -121,3 +134,25 @@ def update_report_status(
     db.commit()
     db.refresh(report)
     return report
+
+@router.post("/check-duplicate", response_model=DuplicateCheckResponse)
+def check_duplicate(
+    data: DuplicateCheckRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    candidates = db.query(Report.id, Report.latitude, Report.longitude, Report.image_url).all()
+    is_dup, matched_id, distance, similarity = find_duplicate(
+        new_lat=data.latitude,
+        new_lon=data.longitude,
+        new_image_url=data.image_url,
+        candidates=candidates,
+        radius_meters=data.radius_meters,
+        similarity_threshold=data.similarity_threshold,
+    )
+    return DuplicateCheckResponse(
+        is_duplicate=is_dup,
+        duplicate_report_id=matched_id,
+        distance_meters=distance,
+        image_similarity=similarity,
+    )

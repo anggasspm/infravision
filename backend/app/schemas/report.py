@@ -49,3 +49,16 @@ class ReportHistoryItem(BaseModel):
 
 class ReportDetailResponse(ReportResponse):
     history: List[ReportHistoryItem] = []
+
+class DuplicateCheckRequest(BaseModel):
+    latitude: float
+    longitude: float
+    image_url: str
+    radius_meters: float = 50
+    similarity_threshold: float = 0.85
+
+class DuplicateCheckResponse(BaseModel):
+    is_duplicate: bool
+    duplicate_report_id: Optional[str] = None
+    distance_meters: Optional[float] = None
+    image_similarity: Optional[float] = None
