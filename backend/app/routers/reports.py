@@ -11,15 +11,10 @@ from app.schemas.report import (
 )
 from app.schemas.common import SuccessResponse
 from app.core.security import get_current_user, require_role
-from app.services.ai_service import mock_classify, assess_severity, calculate_priority
-from app.services.duplicate_service import find_duplicate
-from app.services.workflow_service import transition_report_status
-from app.schemas.common import SuccessResponse
-from app.core.security import get_current_user, require_role
-import os
 from app.services.ai_service import classify_image, download_image_temp, assess_severity, calculate_priority
 from app.services.duplicate_service import find_duplicate
 from app.services.workflow_service import transition_report_status
+import os
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -37,6 +32,7 @@ def create_report(
 ):
     report = Report(
         user_id=current_user["id"],
+        category="Unclassified",  # placeholder sampai AI selesai klasifikasi — kolom category NOT NULL di DB
         description=data.description,
         image_url=data.image_url,
         latitude=data.latitude,
