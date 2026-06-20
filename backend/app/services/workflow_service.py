@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from infravision.backend.app.models.report import Report
-from infravision.backend.app.models.report_history import ReportHistory
-from infravision.backend.app.services.notification_service import create_notification
+from app.models.report import Report
+from app.models.report_history import ReportHistory
+from app.services.notification_service import create_notification
 
 STATE_TRANSITIONS = {
     "pending": ["verified"],

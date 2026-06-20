@@ -32,7 +32,7 @@ export default function ReportDetailPage() {
   const fetchReport = async () => {
     try {
       const res = await api.get(`/reports/${id}`);
-      setReport(res.data);
+      setReport(res.data.data);
     } catch {
       setError("Laporan tidak ditemukan");
     } finally {
@@ -53,6 +53,14 @@ export default function ReportDetailPage() {
       setUpdating(false);
     }
   };
+
+  const categoryLabel = report.category === "Unclassified"
+    ? "Belum Terklasifikasi"
+    : (report.category || "—");
+
+  const categoryStyle = report.category === "Unclassified"
+    ? "bg-gray-100 text-gray-500"
+    : "bg-blue-100 text-blue-700";
 
   if (loading) return <div className="p-8 text-center text-gray-500">Memuat...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;

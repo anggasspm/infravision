@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
-from infravision.backend.app.core.security import get_current_user
-from infravision.backend.app.schemas.ai import (
+from app.core.security import get_current_user
+from app.schemas.ai import (
     ClassifyRequest, ClassifyResponse,
     SeverityRequest, SeverityResponse,
     PriorityRequest, PriorityResponse,
 )
-from infravision.backend.app.schemas.common import SuccessResponse
-from infravision.backend.app.services.ai_service import mock_classify, assess_severity, calculate_priority
+from app.schemas.common import SuccessResponse
+from app.services.ai_service import mock_classify, assess_severity, calculate_priority
 from app.schemas.common import SuccessResponse
 from app.services.ai_service import classify_image, download_image_temp, assess_severity, calculate_priority
 import os

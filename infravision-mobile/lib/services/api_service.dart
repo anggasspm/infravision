@@ -34,9 +34,10 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 200) return data;
-    throw data['detail'] ?? 'Login gagal';
+    final body = jsonDecode(res.body);
+    // ✅ Fix: akses body['data'] bukan body langsung
+    if (res.statusCode == 200) return body['data'] as Map<String, dynamic>;
+    throw body['error']?['message'] ?? 'Login gagal';
   }
 
   static Future<Map<String, dynamic>> register(
@@ -46,12 +47,10 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'name': name, 'email': email, 'password': password}),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 201) return data;
-    throw data['detail'] ?? 'Registrasi gagal';
+    final body = jsonDecode(res.body);
+    if (res.statusCode == 201) return body['data'] as Map<String, dynamic>;
+    throw body['error']?['message'] ?? 'Registrasi gagal';
   }
-
-  // ── Reports ───────────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> getReports({
     int page = 1,
@@ -65,9 +64,10 @@ class ApiService {
     };
     final uri = Uri.parse('$apiBase/reports').replace(queryParameters: params);
     final res = await http.get(uri, headers: await _authHeaders());
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 200) return data;
-    throw data['detail'] ?? 'Gagal mengambil laporan';
+    final body = jsonDecode(res.body);
+    // ✅ Fix: kembalikan body['data'] yang berisi { total, page, items }
+    if (res.statusCode == 200) return body['data'] as Map<String, dynamic>;
+    throw body['error']?['message'] ?? 'Gagal mengambil laporan';
   }
 
   static Future<Map<String, dynamic>> getReportDetail(String id) async {
@@ -75,9 +75,9 @@ class ApiService {
       Uri.parse('$apiBase/reports/$id'),
       headers: await _authHeaders(),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 200) return data;
-    throw data['detail'] ?? 'Laporan tidak ditemukan';
+    final body = jsonDecode(res.body);
+    if (res.statusCode == 200) return body['data'] as Map<String, dynamic>;
+    throw body['error']?['message'] ?? 'Laporan tidak ditemukan';
   }
 
   static Future<Map<String, dynamic>> createReport({
@@ -96,9 +96,9 @@ class ApiService {
         'longitude': longitude,
       }),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 201) return data;
-    throw data['detail'] ?? 'Gagal membuat laporan';
+    final body = jsonDecode(res.body);
+    if (res.statusCode == 201) return body['data'] as Map<String, dynamic>;
+    throw body['error']?['message'] ?? 'Gagal membuat laporan';
   }
 
   static Future<void> updateStatus(String reportId, String status) async {
@@ -108,8 +108,8 @@ class ApiService {
       body: jsonEncode({'status': status}),
     );
     if (res.statusCode != 200) {
-      final data = jsonDecode(res.body);
-      throw data['detail'] ?? 'Gagal update status';
+      final body = jsonDecode(res.body);
+      throw body['error']?['message'] ?? 'Gagal update status';
     }
   }
 

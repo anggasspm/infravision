@@ -9,7 +9,7 @@ export default function NotificationsPage() {
     try {
         const res = await api.get("/notifications");
         // Cek apakah balikan API adalah array murni, atau object yang punya properti 'items'
-        const data = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        const data = res.data.data?.items || [];
         setNotifications(data);
     } catch {
         setNotifications([]);

@@ -28,7 +28,7 @@ export default function MyReportsPage() {
     api.get(`/reports?${params}`)
       .then((res) => {
         // filter by search di frontend
-        const items = res.data.items.filter((r) =>
+        const items = res.data.data.items.filter((r) =>
           r.description.toLowerCase().includes(search.toLowerCase())
         );
         setReports(items);

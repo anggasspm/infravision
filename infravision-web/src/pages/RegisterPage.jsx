@@ -30,7 +30,7 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
       });
-      const { access_token, refresh_token, user } = res.data;
+      const { access_token, refresh_token, user } = res.data.data;
       login(user, { access_token, refresh_token });
       navigate("/");
     } catch (err) {

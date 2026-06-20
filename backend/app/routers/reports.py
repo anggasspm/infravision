@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
-from infravision.backend.app.database import get_db
-from infravision.backend.app.models.report import Report
-from infravision.backend.app.models.report_history import ReportHistory
-from infravision.backend.app.schemas.report import (
+from app.database import get_db
+from app.models.report import Report
+from app.models.report_history import ReportHistory
+from app.schemas.report import (
     ReportCreate, ReportResponse, ReportListResponse,
     ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES,
     DuplicateCheckRequest, DuplicateCheckResponse,
 )
-from infravision.backend.app.schemas.common import SuccessResponse
-from infravision.backend.app.core.security import get_current_user, require_role
-from infravision.backend.app.services.ai_service import mock_classify, assess_severity, calculate_priority
-from infravision.backend.app.services.duplicate_service import find_duplicate
-from infravision.backend.app.services.workflow_service import transition_report_status
+from app.schemas.common import SuccessResponse
+from app.core.security import get_current_user, require_role
+from app.services.ai_service import mock_classify, assess_severity, calculate_priority
+from app.services.duplicate_service import find_duplicate
+from app.services.workflow_service import transition_report_status
 from app.schemas.common import SuccessResponse
 from app.core.security import get_current_user, require_role
 import os

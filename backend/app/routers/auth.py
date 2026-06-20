@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from jose import JWTError
-from infravision.backend.app.database import get_db
-from infravision.backend.app.models.user import User
-from infravision.backend.app.schemas.user import (
+from app.database import get_db
+from app.models.user import User
+from app.schemas.user import (
     UserRegister, UserLogin, TokenResponse, UserResponse,
     RefreshRequest, AccessTokenResponse
 )
-from infravision.backend.app.schemas.common import SuccessResponse
-from infravision.backend.app.core.security import (
+from app.schemas.common import SuccessResponse
+from app.core.security import (
     hash_password, verify_password, create_access_token,
     create_refresh_token, decode_token, get_current_user
 )

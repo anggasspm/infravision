@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from infravision.backend.app.database import Base
+from app.database import Base
 import uuid
 
 

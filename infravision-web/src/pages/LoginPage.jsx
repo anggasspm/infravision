@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.post("/auth/login", form);
-      const { access_token, refresh_token, user } = res.data;
+      const { access_token, refresh_token, user } = res.data.data;
       login(user, { access_token, refresh_token });
 
       if (user.role === "admin") navigate("/admin/dashboard");
