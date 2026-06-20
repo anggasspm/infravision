@@ -7,9 +7,12 @@ const STATUS_LABELS = {
   in_progress: "Dalam Proses", under_repair: "Sedang Diperbaiki", completed: "Selesai",
 };
 const STATUS_COLORS = {
-  pending: "bg-gray-100 text-gray-600", verified: "bg-blue-100 text-blue-700",
-  assigned: "bg-purple-100 text-purple-700", in_progress: "bg-yellow-100 text-yellow-700",
-  under_repair: "bg-orange-100 text-orange-700", completed: "bg-green-100 text-green-700",
+  pending:      "bg-slate-100 text-slate-600",
+  verified:     "bg-blue-50 text-blue-700 border border-blue-100",
+  assigned:     "bg-violet-50 text-violet-700 border border-violet-100",
+  in_progress:  "bg-amber-50 text-amber-700 border border-amber-100",
+  under_repair: "bg-orange-50 text-orange-700 border border-orange-100",
+  completed:    "bg-green-50 text-green-700 border border-green-100",
 };
 
 export default function MyReportsPage() {

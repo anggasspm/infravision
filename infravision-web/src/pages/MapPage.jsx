@@ -77,7 +77,7 @@ export default function MapPage() {
   }, [filters, reports]);
 
   return (
-    <div className="flex h-[calc(100vh-56px)]">
+    <div className="flex h-screen">
       {/* Filter Panel */}
       <div className="w-64 bg-white border-r p-4 space-y-4 overflow-y-auto shrink-0">
         <h2 className="font-semibold text-gray-700">Filter Laporan</h2>
