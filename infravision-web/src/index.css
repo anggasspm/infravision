@@ -4,8 +4,19 @@
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 @theme {
-  --color-primary: #3b82f6;
-  --color-danger:  #ef4444;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
+  --color-primary:      #2563EB;
+  --color-primary-dark: #1D4ED8;
+  --color-danger:       #EF4444;
+  --color-success:      #16A34A;
+  --color-warning:      #D97706;
+}
+
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  overflow-y: scroll; /* scrollbar selalu ada */
 }
