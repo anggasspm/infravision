@@ -6,8 +6,6 @@ from app.schemas.ai import (
     PriorityRequest, PriorityResponse,
 )
 from app.schemas.common import SuccessResponse
-from app.services.ai_service import mock_classify, assess_severity, calculate_priority
-from app.schemas.common import SuccessResponse
 from app.services.ai_service import classify_image, download_image_temp, assess_severity, calculate_priority
 import os
 

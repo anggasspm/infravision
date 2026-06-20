@@ -42,7 +42,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./infravision-web
       dockerfile: Dockerfile
     container_name: infravision_frontend
     restart: unless-stopped
@@ -51,7 +51,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app
+      - ./infravision-web:/app
       - /app/node_modules
     environment:
       - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
