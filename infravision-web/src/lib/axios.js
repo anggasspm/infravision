@@ -23,7 +23,7 @@ api.interceptors.response.use(
             { refresh_token: refreshToken }
           );
           localStorage.setItem("access_token", res.data.data.access_token);
-          error.config.headers.Authorization = `Bearer ${res.data.access_token}`;
+          error.config.headers.Authorization = `Bearer ${res.data.data.access_token}`;
           return api.request(error.config);
         } catch {
           localStorage.clear();
