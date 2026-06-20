@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from infravision.backend.app.database import get_db
-from infravision.backend.app.models.report import Report
-from infravision.backend.app.models.user import User
-from infravision.backend.app.schemas.report import ReportResponse
-from infravision.backend.app.schemas.admin import AssignRequest
-from infravision.backend.app.schemas.common import SuccessResponse
-from infravision.backend.app.core.security import require_role
-from infravision.backend.app.services.workflow_service import transition_report_status
+from app.database import get_db
+from app.models.report import Report
+from app.models.user import User
+from app.schemas.report import ReportResponse
+from app.schemas.admin import AssignRequest
+from app.schemas.common import SuccessResponse
+from app.core.security import require_role
+from app.services.workflow_service import transition_report_status
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 

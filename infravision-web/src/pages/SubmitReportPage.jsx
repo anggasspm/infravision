@@ -1,15 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
- 
-const CATEGORIES = [
-  "Jalan Berlubang",
-  "Retak Jalan/Bangunan",
-  "Lampu Jalan Rusak",
-  "Saluran Air Tersumbat",
-  "Trotoar Rusak",
-  "Lainnya",
-];
 
 const CLOUD_NAME = "ISI_CLOUD_NAME_DARI_ORANG3";
 const UPLOAD_PRESET = "ISI_UPLOAD_PRESET_DARI_ORANG3";
@@ -18,7 +9,6 @@ export default function SubmitReportPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     description: "",
-    category: "",
     latitude: null,
     longitude: null,
   });
@@ -81,7 +71,7 @@ export default function SubmitReportPage() {
         latitude: form.latitude,
         longitude: form.longitude,
       });
-      navigate(`/report/${res.data.id}`);
+      navigate(`/report/${res.data.data.id}`);
     } catch (err) {
       setError(err.response?.data?.detail || err.message || "Gagal mengirim laporan");
     } finally {
@@ -127,21 +117,6 @@ export default function SubmitReportPage() {
             placeholder="Jelaskan kondisi kerusakan..."
             required
           />
-        </div>
-
-        {/* Kategori */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-          <select
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">-- Pilih Kategori --</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
         </div>
 
         {/* GPS */}

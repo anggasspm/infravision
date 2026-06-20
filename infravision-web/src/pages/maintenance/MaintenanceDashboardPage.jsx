@@ -17,7 +17,7 @@ export default function MaintenanceDashboardPage() {
   const fetchReports = () => {
     setLoading(true);
     api.get("/reports?status=assigned&page_size=100")
-      .then((res) => setReports(res.data.items || []))
+      .then((res) => setReports(res.data.data.items || []))
       .finally(() => setLoading(false));
   };
 

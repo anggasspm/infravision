@@ -22,7 +22,7 @@ api.interceptors.response.use(
             `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
             { refresh_token: refreshToken }
           );
-          localStorage.setItem("access_token", res.data.access_token);
+          localStorage.setItem("access_token", res.data.data.access_token);
           error.config.headers.Authorization = `Bearer ${res.data.access_token}`;
           return api.request(error.config);
         } catch {

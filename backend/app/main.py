@@ -3,9 +3,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from infravision.backend.app.database import Base, engine
-from infravision.backend.app.routers import reports
-from infravision.backend.app.routers import admin, ai, analytics, auth, gis, notifications
+from app.database import Base, engine
+from app.routers import reports
+from app.routers import admin, ai, analytics, auth, gis, notifications
 
 Base.metadata.create_all(bind=engine)
 
@@ -17,7 +17,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",             
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

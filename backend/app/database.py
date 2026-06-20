@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from infravision.backend.app.core.config import settings
+from app.core.config import settings
 
 # connect_args khusus untuk SQLite, kosong untuk PostgreSQL
 connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}

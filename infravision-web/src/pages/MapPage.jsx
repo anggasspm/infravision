@@ -47,10 +47,23 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/reports?page_size=500")
+    api.get("/map/reports")
       .then((res) => {
-        setReports(res.data.items || []);
-        setFiltered(res.data.items || []);
+        // GeoJSON: { type: "FeatureCollection", features: [...] }
+        const features = res.data.data?.features || [];
+        // Konversi GeoJSON feature ke format yang dipakai marker
+        const items = features.map((f) => ({
+          id: f.properties.id,
+          latitude: f.geometry.coordinates[1],   // GeoJSON: [lng, lat]
+          longitude: f.geometry.coordinates[0],
+          category: f.properties.category,
+          severity: f.properties.severity,
+          status: f.properties.status,
+          priority_score: f.properties.priority_score,
+          is_duplicate: f.properties.is_duplicate,
+        }));
+        setReports(items);
+        setFiltered(items);
       })
       .finally(() => setLoading(false));
   }, []);

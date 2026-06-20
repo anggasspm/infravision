@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from infravision.backend.app.database import get_db
-from infravision.backend.app.models.notification import Notification
-from infravision.backend.app.schemas.notification import NotificationResponse, NotificationListResponse
-from infravision.backend.app.schemas.common import SuccessResponse
-from infravision.backend.app.core.security import get_current_user
+from app.database import get_db
+from app.models.notification import Notification
+from app.schemas.notification import NotificationResponse, NotificationListResponse
+from app.schemas.common import SuccessResponse
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
