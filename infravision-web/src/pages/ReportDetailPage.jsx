@@ -40,7 +40,7 @@ export default function ReportDetailPage() {
     }
   };
 
-  useEffect(() => { fetchReport(); }, [id]);
+   useEffect(() => { fetchReport(); }, [id]);
 
   const handleStatusUpdate = async (newStatus) => {
     setUpdating(true);
@@ -54,6 +54,10 @@ export default function ReportDetailPage() {
     }
   };
 
+  if (loading) return <div className="p-8 text-center text-gray-500">Memuat...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+  if (!report) return <div className="p-8 text-center text-gray-500">Laporan tidak ditemukan</div>;
+
   const categoryLabel = report.category === "Unclassified"
     ? "Belum Terklasifikasi"
     : (report.category || "—");
@@ -61,9 +65,6 @@ export default function ReportDetailPage() {
   const categoryStyle = report.category === "Unclassified"
     ? "bg-gray-100 text-gray-500"
     : "bg-blue-100 text-blue-700";
-
-  if (loading) return <div className="p-8 text-center text-gray-500">Memuat...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-10 space-y-6">
