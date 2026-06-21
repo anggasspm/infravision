@@ -80,20 +80,23 @@ export default function MapPage() {
   return (
     <div className="flex h-screen">
       {/* Filter Panel */}
-      <div className="w-64 bg-white border-r p-4 space-y-4 overflow-y-auto shrink-0">
-        <h2 className="font-semibold text-gray-700">Filter Laporan</h2>
+      <div className="w-60 bg-white border-r border-[var(--border)] p-5 space-y-5 overflow-y-auto shrink-0">
+        <h2 className="font-display text-base font-semibold text-[var(--ink)]">Filter</h2>
 
         {[
-          { label: "Severity", key: "severity", options: ["low","medium","high","critical"] },
+          { label: "Tingkat Keparahan", key: "severity", options: ["low","medium","high","critical"] },
           { label: "Status", key: "status", options: STATUSES },
-          { label: "Kategori", key: "category", options: CATEGORIES },
+          { label: "Kategori", key: "category", options: ["Road Damage", "Pothole", "Unclassified"] },
         ].map(({ label, key, options }) => (
           <div key={key}>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1.5 uppercase tracking-wide">
+              {label}
+            </label>
             <select
               value={filters[key]}
               onChange={(e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }))}
-              className="w-full border rounded px-2 py-1.5 text-sm"
+              className="w-full border-b border-[var(--border)] bg-transparent pb-1.5 text-sm text-[var(--ink)]
+                        focus:border-[var(--brand)] outline-none transition"
             >
               <option value="">Semua</option>
               {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -101,14 +104,18 @@ export default function MapPage() {
           </div>
         ))}
 
-        <button
-          onClick={() => setFilters({ severity: "", status: "", category: "" })}
-          className="w-full text-sm text-primary hover:underline"
-        >
-          Reset Filter
-        </button>
+        {(filters.severity || filters.status || filters.category) && (
+          <button
+            onClick={() => setFilters({ severity: "", status: "", category: "" })}
+            className="text-xs text-[var(--brand)] hover:underline"
+          >
+            Hapus semua filter
+          </button>
+        )}
 
-        <p className="text-xs text-gray-400">{filtered.length} laporan ditampilkan</p>
+        <p className="text-xs text-[var(--ink-soft)] pt-3 border-t border-[var(--border)]">
+          {filtered.length} laporan ditampilkan
+        </p>
       </div>
 
       {/* Map */}
