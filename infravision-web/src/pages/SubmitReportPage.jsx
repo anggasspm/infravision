@@ -72,19 +72,19 @@ export default function SubmitReportPage() {
   };
 
   return (
-    <div className="bg-slate-50">
+    <div className="bg-[var(--paper)] min-h-screen">
       <div className="max-w-xl mx-auto px-6 py-10">
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Buat Laporan Baru</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Foto akan dianalisis AI secara otomatis untuk menentukan kategori dan prioritas.
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Buat Laporan Baru</h1>
+          <p className="text-sm text-[var(--ink-soft)] mt-1.5">
+            Foto akan dianalisis otomatis untuk menentukan kategori dan prioritas.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-start gap-2">
+          <div className="mb-6 pl-3 py-2 border-l-2 text-sm flex items-start gap-2" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
@@ -97,10 +97,10 @@ export default function SubmitReportPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* Upload Foto */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
+          <div className="bg-white rounded-lg border border-[var(--border)] p-5">
+            <label className="block text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide mb-3">
               Foto Kerusakan
-              <span className="text-red-500 ml-1">*</span>
+              <span className="text-[var(--accent)] ml-1">*</span>
             </label>
 
             {imagePreview ? (
@@ -108,12 +108,12 @@ export default function SubmitReportPage() {
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="w-full h-52 object-cover rounded-xl border border-slate-200"
+                  className="w-full h-52 object-cover rounded-md border border-[var(--border)]"
                 />
                 <button
                   type="button"
                   onClick={() => { setImageFile(null); setImagePreview(null); }}
-                  className="absolute top-2 right-2 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-slate-500 hover:text-red-500"
+                  className="absolute top-2 right-2 w-7 h-7 bg-white rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--ink-soft)] hover:text-[var(--accent)]"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -122,49 +122,49 @@ export default function SubmitReportPage() {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-primary hover:bg-blue-50 transition-colors">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 mb-2">
+              <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[var(--border)] rounded-md cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] transition-colors">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--ink-soft)] mb-2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
                   <polyline points="21 15 16 10 5 21"/>
                 </svg>
-                <p className="text-sm text-slate-500">Klik untuk pilih foto</p>
-                <p className="text-xs text-slate-400 mt-1">JPG, PNG hingga 10MB</p>
+                <p className="text-sm text-[var(--ink-soft)]">Klik untuk pilih foto</p>
+                <p className="text-xs text-[var(--ink-soft)] mt-1 opacity-70">JPG, PNG hingga 10MB</p>
                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
               </label>
             )}
           </div>
 
           {/* Deskripsi */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
+          <div className="bg-white rounded-lg border border-[var(--border)] p-5">
+            <label className="block text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide mb-3">
               Deskripsi
-              <span className="text-red-500 ml-1">*</span>
+              <span className="text-[var(--accent)] ml-1">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+              className="w-full border border-[var(--border)] rounded-md px-4 py-3 text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--brand)] transition resize-none"
               placeholder="Jelaskan kondisi kerusakan yang kamu temukan..."
               required
             />
           </div>
 
           {/* GPS */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
+          <div className="bg-white rounded-lg border border-[var(--border)] p-5">
+            <label className="block text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide mb-3">
               Lokasi
-              <span className="text-red-500 ml-1">*</span>
+              <span className="text-[var(--accent)] ml-1">*</span>
             </label>
             <button
               type="button"
               onClick={captureGPS}
               disabled={gpsStatus === "loading"}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors border ${
                 gpsStatus === "success"
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  ? "border-[var(--success)] text-[var(--success)] bg-[var(--success)]/5"
+                  : "border-[var(--border)] text-[var(--ink)] bg-white hover:bg-[var(--brand-soft)]"
               }`}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -177,7 +177,7 @@ export default function SubmitReportPage() {
               {gpsStatus === "error"   && "Coba Lagi"}
             </button>
             {gpsStatus === "error" && (
-              <p className="mt-2 text-xs text-red-500">Gagal mengambil lokasi. Pastikan GPS aktif.</p>
+              <p className="mt-2 text-xs text-[var(--accent)]">Gagal mengambil lokasi. Pastikan GPS aktif.</p>
             )}
           </div>
 
@@ -185,7 +185,7 @@ export default function SubmitReportPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-dark text-white py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-[var(--brand)] hover:bg-[#13231A] text-white py-3 rounded-md text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
