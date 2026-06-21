@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
 
 const CLOUD_NAME    = "djzh35nga";
-const UPLOAD_PRESET = "ISI_UPLOAD_PRESET_DARI_ORANG3";
+const UPLOAD_PRESET = "infravision_uploads";
 
 export default function SubmitReportPage() {
   const navigate = useNavigate();
