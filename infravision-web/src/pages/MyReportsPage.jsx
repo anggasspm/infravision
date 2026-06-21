@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../lib/axios";
+import StatusTag from "../components/StatusTag";
 
 const STATUS_LABELS = {
   pending: "Menunggu", verified: "Diverifikasi", assigned: "Ditugaskan",
   in_progress: "Dalam Proses", under_repair: "Sedang Diperbaiki", completed: "Selesai",
-};
-const STATUS_COLORS = {
-  pending:      "bg-slate-100 text-slate-600",
-  verified:     "bg-blue-50 text-blue-700 border border-blue-100",
-  assigned:     "bg-violet-50 text-violet-700 border border-violet-100",
-  in_progress:  "bg-amber-50 text-amber-700 border border-amber-100",
-  under_repair: "bg-orange-50 text-orange-700 border border-orange-100",
-  completed:    "bg-green-50 text-green-700 border border-green-100",
 };
 
 export default function MyReportsPage() {
@@ -30,7 +23,6 @@ export default function MyReportsPage() {
     if (statusFilter) params.append("status", statusFilter);
     api.get(`/reports?${params}`)
       .then((res) => {
-        // filter by search di frontend
         const items = res.data.data.items.filter((r) =>
           r.description.toLowerCase().includes(search.toLowerCase())
         );
@@ -40,9 +32,11 @@ export default function MyReportsPage() {
       .finally(() => setLoading(false));
   }, [page, statusFilter, search]);
 
+  const isEmptyFromStart = reports.length === 0 && !search && !statusFilter;
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Laporan Saya</h1>
+      <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-6">Laporan Saya</h1>
 
       <div className="flex gap-3 mb-5 flex-wrap">
         <input
@@ -50,12 +44,14 @@ export default function MyReportsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari deskripsi..."
-          className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-48"
+          className="border border-[var(--border)] rounded-md px-3 py-2 text-sm flex-1 min-w-48
+                     text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--brand)] transition"
         />
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border rounded-lg px-3 py-2 text-sm"
+          className="border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--ink)]
+                     focus:outline-none focus:border-[var(--brand)] transition"
         >
           <option value="">Semua Status</option>
           {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -65,52 +61,74 @@ export default function MyReportsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-400 py-10">Memuat...</div>
+        <div className="text-center text-[var(--ink-soft)] py-16 text-sm">Memuat...</div>
       ) : reports.length === 0 ? (
-        <div className="text-center text-gray-400 py-10">Belum ada laporan</div>
+        isEmptyFromStart ? (
+          <div className="text-center py-20">
+            <p className="text-[var(--ink-soft)] text-sm mb-4">Kamu belum membuat laporan apapun.</p>
+            <Link to="/submit" className="text-sm font-medium text-[var(--brand)] hover:underline">
+              Buat laporan pertama →
+            </Link>
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <p className="text-[var(--ink-soft)] text-sm mb-4">Tidak ada laporan yang cocok dengan pencarian ini.</p>
+            <button
+              onClick={() => { setSearch(""); setStatusFilter(""); }}
+              className="text-sm font-medium text-[var(--brand)] hover:underline"
+            >
+              Hapus filter
+            </button>
+          </div>
+        )
       ) : (
         <div className="space-y-3">
           {reports.map((r) => (
             <Link
               key={r.id}
               to={`/report/${r.id}`}
-              className="flex items-center gap-4 bg-white border rounded-xl p-4 hover:shadow transition"
+              className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-lg p-4
+                         hover:border-[var(--brand)] transition"
             >
               <img
                 src={r.image_url}
                 alt=""
-                className="w-16 h-16 object-cover rounded-lg shrink-0"
+                className="w-16 h-16 object-cover rounded-md shrink-0 border border-[var(--border)]"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{r.description}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{r.category || "—"} · {new Date(r.created_at).toLocaleDateString("id-ID")}</p>
+                <p className="text-sm font-medium text-[var(--ink)] truncate">{r.description}</p>
+                <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                  {r.category || "—"} · {new Date(r.created_at).toLocaleDateString("id-ID")}
+                </p>
               </div>
-              <span className={`text-xs px-2 py-1 rounded font-medium shrink-0 ${STATUS_COLORS[r.status] || "bg-gray-100"}`}>
-                {STATUS_LABELS[r.status] || r.status}
-              </span>
+              <div className="shrink-0">
+                <StatusTag status={r.status} />
+              </div>
             </Link>
           ))}
         </div>
       )}
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-6 text-sm text-gray-500">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="px-3 py-1 border rounded disabled:opacity-40"
-        >
-          ← Sebelumnya
-        </button>
-        <span>Halaman {page} · Total {total} laporan</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          disabled={page * PAGE_SIZE >= total}
-          className="px-3 py-1 border rounded disabled:opacity-40"
-        >
-          Berikutnya →
-        </button>
-      </div>
+      {reports.length > 0 && (
+        <div className="flex justify-between items-center mt-6 text-sm text-[var(--ink-soft)]">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1.5 border border-[var(--border)] rounded-md hover:bg-[var(--brand-soft)] disabled:opacity-40 transition"
+          >
+            ← Sebelumnya
+          </button>
+          <span>Halaman {page} · Total {total} laporan</span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page * PAGE_SIZE >= total}
+            className="px-3 py-1.5 border border-[var(--border)] rounded-md hover:bg-[var(--brand-soft)] disabled:opacity-40 transition"
+          >
+            Berikutnya →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
