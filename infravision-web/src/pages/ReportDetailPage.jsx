@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
+import StatusTag from "../components/StatusTag";
+import SeverityTag from "../components/SeverityTag";
+import Card from "../components/Card";
+import { Link } from "react-router-dom";
  
 const SEVERITY_COLORS = {
   low: "bg-green-100 text-green-800",
@@ -67,76 +71,92 @@ export default function ReportDetailPage() {
     : "bg-blue-100 text-blue-700";
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Detail Laporan</h1>
+    <div className="max-w-2xl mx-auto px-6 py-12 space-y-6">
+      <div>
+        <Link to="/map" className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]">← Kembali ke peta</Link>
+        <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mt-2">Detail Laporan</h1>
+      </div>
 
-      {/* Foto */}
       <img
         src={report.image_url}
         alt="Foto kerusakan"
-        className="w-full rounded-xl object-cover max-h-72 border"
+        className="w-full rounded-lg object-cover max-h-80 border border-[var(--border)]"
       />
 
-      {/* Info */}
-      <div className="bg-white border rounded-xl p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-1 rounded text-xs font-medium ${SEVERITY_COLORS[report.severity] || "bg-gray-100 text-gray-600"}`}>
-            {report.severity?.toUpperCase() || "—"}
-          </span>
-          <span className="text-sm text-gray-500">{STATUS_LABELS[report.status] || report.status}</span>
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between">
+          <StatusTag status={report.status} />
+          <SeverityTag severity={report.severity} />
         </div>
 
-        <p className="text-gray-700">{report.description}</p>
+        <p className="text-[var(--ink)] leading-relaxed">{report.description}</p>
 
-        <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-          <div>Kategori: <span className="text-gray-800 font-medium">{report.category || "—"}</span></div>
-          <div>AI Confidence: <span className="text-gray-800 font-medium">{report.ai_confidence ? `${(report.ai_confidence * 100).toFixed(1)}%` : "—"}</span></div>
-          <div>Priority Score: <span className="text-gray-800 font-medium">{report.priority_score ?? "—"}</span></div>
-          <div>Koordinat: <span className="text-gray-800 font-medium">{report.latitude?.toFixed(5)}, {report.longitude?.toFixed(5)}</span></div>
-          <div>Dibuat: <span className="text-gray-800 font-medium">{new Date(report.created_at).toLocaleDateString("id-ID")}</span></div>
-          {report.is_duplicate && <div className="col-span-2 text-yellow-600 font-medium">⚠ Laporan ini terdeteksi duplikat</div>}
-        </div>
-      </div>
+        <dl className="grid grid-cols-2 gap-y-3 text-sm pt-4 border-t border-[var(--border)]">
+          <div>
+            <dt className="text-[var(--ink-soft)] text-xs uppercase tracking-wide mb-0.5">Kategori</dt>
+            <dd className="text-[var(--ink)] font-medium">{categoryLabel}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--ink-soft)] text-xs uppercase tracking-wide mb-0.5">Keyakinan AI</dt>
+            <dd className="text-[var(--ink)] font-medium">
+              {report.ai_confidence ? `${(report.ai_confidence * 100).toFixed(0)}%` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--ink-soft)] text-xs uppercase tracking-wide mb-0.5">Skor Prioritas</dt>
+            <dd className="text-[var(--ink)] font-medium">{report.priority_score ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--ink-soft)] text-xs uppercase tracking-wide mb-0.5">Dilaporkan</dt>
+            <dd className="text-[var(--ink)] font-medium">{new Date(report.created_at).toLocaleDateString("id-ID")}</dd>
+          </div>
+        </dl>
 
-      {/* Status Timeline */}
+        {report.is_duplicate && (
+          <p className="text-sm pl-3 border-l-2" style={{ borderColor: "var(--warning)", color: "var(--warning)" }}>
+            Laporan ini kemungkinan duplikat dari laporan lain di lokasi yang sama
+          </p>
+        )}
+      </Card>
+
       {report.history?.length > 0 && (
-        <div className="bg-white border rounded-xl p-5">
-          <h2 className="font-semibold text-gray-700 mb-3">Riwayat Status</h2>
-          <ol className="relative border-l border-gray-200 space-y-4 ml-3">
+        <Card>
+          <h2 className="font-display font-semibold text-[var(--ink)] mb-4">Riwayat Status</h2>
+          <ol className="space-y-4">
             {report.history.map((h) => (
-              <li key={h.id} className="ml-4">
-                <div className="absolute -left-1.5 w-3 h-3 rounded-full bg-primary"></div>
-                <p className="text-sm font-medium text-gray-800">
-                  {STATUS_LABELS[h.previous_status] || h.previous_status || "—"} → {STATUS_LABELS[h.current_status] || h.current_status}
+              <li key={h.id} className="pl-4 border-l-2 border-[var(--border)]">
+                <p className="text-sm font-medium text-[var(--ink)]">
+                  {STATUS_LABELS[h.previous_status] || "Dibuat"} → {STATUS_LABELS[h.current_status]}
                 </p>
-                <p className="text-xs text-gray-400">{new Date(h.updated_at).toLocaleString("id-ID")}</p>
+                <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                  {new Date(h.updated_at).toLocaleString("id-ID")}
+                </p>
               </li>
             ))}
           </ol>
-        </div>
+        </Card>
       )}
 
-      {/* Update Status (admin & maintenance) */}
       {(user?.role === "admin" || user?.role === "maintenance") && (
-        <div className="bg-white border rounded-xl p-5">
-          <h2 className="font-semibold text-gray-700 mb-3">Update Status</h2>
+        <Card>
+          <h2 className="font-display font-semibold text-[var(--ink)] mb-4">Ubah Status</h2>
           <div className="flex flex-wrap gap-2">
             {VALID_STATUSES.map((s) => (
               <button
                 key={s}
                 onClick={() => handleStatusUpdate(s)}
                 disabled={updating || report.status === s}
-                className={`px-3 py-1 text-sm rounded-lg border ${
+                className={`px-3 py-1.5 text-sm rounded-md border transition ${
                   report.status === s
-                    ? "bg-primary text-white border-primary"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                } disabled:opacity-50`}
+                    ? "bg-[var(--brand)] text-white border-[var(--brand)]"
+                    : "bg-white text-[var(--ink)] border-[var(--border)] hover:bg-[var(--brand-soft)]"
+                } disabled:opacity-40`}
               >
                 {STATUS_LABELS[s]}
               </button>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );
