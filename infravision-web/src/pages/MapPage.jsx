@@ -7,7 +7,8 @@ import api from "../lib/axios";
 
 const SEVERITY_COLORS = { low: "green", medium: "orange", high: "darkorange", critical: "red" };
 
-const CATEGORIES = ["Jalan Berlubang","Retak Jalan/Bangunan","Lampu Jalan Rusak","Saluran Air Tersumbat","Trotoar Rusak","Lainnya"];
+const CATEGORIES = ["Road Damage", "Pothole", "Unclassified"];
+
 const STATUSES = ["pending","verified","assigned","in_progress","under_repair","completed"];
 
 function MarkersLayer({ reports, navigate }) {
