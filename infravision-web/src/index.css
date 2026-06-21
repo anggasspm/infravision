@@ -1,22 +1,35 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
-@import "leaflet.markercluster/dist/MarkerCluster.css";
-@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
-@theme {
-  --color-primary:      #2563EB;
-  --color-primary-dark: #1D4ED8;
-  --color-danger:       #EF4444;
-  --color-success:      #16A34A;
-  --color-warning:      #D97706;
-}
+:root {
+  --ink: #0F172A;
+  --ink-soft: #52606D;
+  --paper: #F6F4EF;
+  --surface: #FFFFFF;
+  --border: #E8E4D9;
+  --brand: #1A2E22;
+  --brand-soft: #EEF2EC;
+  --accent: #C2410C;
+  --success: #3F6212;
+  --warning: #92400E;
 
-* {
-  font-family: 'Inter', sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-body: "Inter", -apple-system, sans-serif;
 }
 
 body {
-  background-color: #F8FAFC;
-  color: #0F172A;
-  overflow-y: scroll; /* scrollbar selalu ada */
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Fokus keyboard jelas terlihat, jangan dihilangkan */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
