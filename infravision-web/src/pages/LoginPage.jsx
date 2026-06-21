@@ -33,25 +33,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--paper)] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-12 h-12 bg-[var(--brand)] rounded-lg flex items-center justify-center mx-auto mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Masuk ke InfraVision</h1>
-          <p className="text-sm text-slate-500 mt-1">Selamat datang kembali</p>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Masuk ke InfraVision</h1>
+          <p className="text-sm text-[var(--ink-soft)] mt-1">Selamat datang kembali</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div className="bg-white rounded-lg border border-[var(--border)] p-6">
           {error && (
-            <div className="mb-5 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-2">
+            <div className="mb-5 pl-3 py-2 border-l-2 text-sm flex items-center gap-2" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
@@ -63,32 +63,32 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide mb-1.5">Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+                className="w-full border border-[var(--border)] rounded-md px-4 py-2.5 text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--brand)] transition"
                 placeholder="email@contoh.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+              <label className="block text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent pr-10"
+                  className="w-full border border-[var(--border)] rounded-md px-4 py-2.5 text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--brand)] transition pr-10"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-soft)] hover:text-[var(--ink)]"
                 >
                   {showPass ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -109,16 +109,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 mt-2"
+              className="w-full bg-[var(--brand)] hover:bg-[#13231A] text-white py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-40 mt-2"
             >
               {loading ? "Memuat..." : "Masuk"}
             </button>
           </form>
         </div>
 
-        <p className="mt-5 text-sm text-center text-slate-500">
+        <p className="mt-5 text-sm text-center text-[var(--ink-soft)]">
           Belum punya akun?{" "}
-          <Link to="/register" className="text-primary font-semibold hover:underline">
+          <Link to="/register" className="text-[var(--brand)] font-medium hover:underline">
             Daftar sekarang
           </Link>
         </p>
