@@ -9,7 +9,7 @@ const SEVERITY_COLORS = { low: "green", medium: "orange", high: "darkorange", cr
 
 const CATEGORIES = ["Road Damage", "Pothole", "Unclassified"];
 
-const STATUSES = ["pending","verified","assigned","in_progress","under_repair","completed"];
+const STATUSES = ["pending", "verified", "assigned", "in_progress", "under_repair", "completed"];
 
 function MarkersLayer({ reports, navigate }) {
   const map = useMap();
@@ -77,16 +77,18 @@ export default function MapPage() {
     setFiltered(data);
   }, [filters, reports]);
 
+  const hasActiveFilters = filters.severity || filters.status || filters.category;
+
   return (
     <div className="flex h-screen">
       {/* Filter Panel */}
-      <div className="w-60 bg-white border-r border-[var(--border)] p-5 space-y-5 overflow-y-auto shrink-0">
+      <div className="w-60 bg-white border-r border-[var(--border)] p-5 space-y-5 overflow-y-auto shrink-0 animate-rise-in">
         <h2 className="font-display text-base font-semibold text-[var(--ink)]">Filter</h2>
 
         {[
-          { label: "Tingkat Keparahan", key: "severity", options: ["low","medium","high","critical"] },
+          { label: "Tingkat Keparahan", key: "severity", options: ["low", "medium", "high", "critical"] },
           { label: "Status", key: "status", options: STATUSES },
-          { label: "Kategori", key: "category", options: ["Road Damage", "Pothole", "Unclassified"] },
+          { label: "Kategori", key: "category", options: CATEGORIES },
         ].map(({ label, key, options }) => (
           <div key={key}>
             <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1.5 uppercase tracking-wide">
@@ -96,7 +98,8 @@ export default function MapPage() {
               value={filters[key]}
               onChange={(e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }))}
               className="w-full border-b border-[var(--border)] bg-transparent pb-1.5 text-sm text-[var(--ink)]
-                        focus:border-[var(--brand)] outline-none transition"
+                        transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                        focus:border-[var(--brand)] outline-none"
             >
               <option value="">Semua</option>
               {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -104,16 +107,25 @@ export default function MapPage() {
           </div>
         ))}
 
-        {(filters.severity || filters.status || filters.category) && (
+        {/* Tombol "hapus filter" fade+scale in agar tidak muncul tiba-tiba
+            begitu user pilih filter pertama */}
+        <div
+          className={`overflow-hidden transition-[max-height,opacity] duration-[var(--dur-base)] ease-[var(--ease-out)] ${
+            hasActiveFilters ? "max-h-8 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
           <button
             onClick={() => setFilters({ severity: "", status: "", category: "" })}
             className="text-xs text-[var(--brand)] hover:underline"
           >
             Hapus semua filter
           </button>
-        )}
+        </div>
 
-        <p className="text-xs text-[var(--ink-soft)] pt-3 border-t border-[var(--border)]">
+        <p
+          key={filtered.length}
+          className="text-xs text-[var(--ink-soft)] pt-3 border-t border-[var(--border)] animate-status-update"
+        >
           {filtered.length} laporan ditampilkan
         </p>
       </div>
@@ -121,19 +133,21 @@ export default function MapPage() {
       {/* Map */}
       <div className="flex-1">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-gray-400">Memuat peta...</div>
+          <div className="h-full w-full skeleton rounded-none" />
         ) : (
-          <MapContainer
-            center={[-6.2, 106.8]}
-            zoom={12}
-            style={{ height: "100%", width: "100%" }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; OpenStreetMap contributors'
-            />
-            <MarkersLayer reports={filtered} navigate={navigate} />
-          </MapContainer>
+          <div className="h-full w-full animate-rise-in">
+            <MapContainer
+              center={[-6.2, 106.8]}
+              zoom={12}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <MarkersLayer reports={filtered} navigate={navigate} />
+            </MapContainer>
+          </div>
         )}
       </div>
     </div>

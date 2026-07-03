@@ -1,18 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import api from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
 import StatusTag from "../components/StatusTag";
 import SeverityTag from "../components/SeverityTag";
 import Card from "../components/Card";
-import { Link } from "react-router-dom";
- 
-const SEVERITY_COLORS = {
-  low: "bg-green-100 text-green-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  high: "bg-orange-100 text-orange-800",
-  critical: "bg-red-100 text-red-800",
-};
 
 const STATUS_LABELS = {
   pending: "Menunggu",
@@ -24,6 +16,20 @@ const STATUS_LABELS = {
 };
 
 const VALID_STATUSES = ["pending", "verified", "assigned", "in_progress", "under_repair", "completed"];
+
+function DetailSkeleton() {
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-12 space-y-6">
+      <div className="h-4 w-32 skeleton" />
+      <div className="w-full h-80 rounded-lg skeleton" />
+      <div className="bg-white border border-[var(--border)] rounded-lg p-5 space-y-3">
+        <div className="h-4 w-1/2 skeleton" />
+        <div className="h-4 w-full skeleton" />
+        <div className="h-4 w-3/4 skeleton" />
+      </div>
+    </div>
+  );
+}
 
 export default function ReportDetailPage() {
   const { id } = useParams();
@@ -44,7 +50,7 @@ export default function ReportDetailPage() {
     }
   };
 
-   useEffect(() => { fetchReport(); }, [id]);
+  useEffect(() => { fetchReport(); }, [id]);
 
   const handleStatusUpdate = async (newStatus) => {
     setUpdating(true);
@@ -58,32 +64,34 @@ export default function ReportDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Memuat...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
-  if (!report) return <div className="p-8 text-center text-gray-500">Laporan tidak ditemukan</div>;
+  if (loading) return <DetailSkeleton />;
+  if (error) return <div className="p-8 text-center text-[var(--accent)] text-sm animate-rise-in">{error}</div>;
+  if (!report) return <div className="p-8 text-center text-[var(--ink-soft)] text-sm">Laporan tidak ditemukan</div>;
 
   const categoryLabel = report.category === "Unclassified"
     ? "Belum Terklasifikasi"
     : (report.category || "—");
 
-  const categoryStyle = report.category === "Unclassified"
-    ? "bg-gray-100 text-gray-500"
-    : "bg-blue-100 text-blue-700";
-
   return (
     <div className="max-w-2xl mx-auto px-6 py-12 space-y-6">
-      <div>
-        <Link to="/map" className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]">← Kembali ke peta</Link>
+      <div className="animate-rise-in">
+        <Link
+          to="/map"
+          className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+        >
+          ← Kembali ke peta
+        </Link>
         <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mt-2">Detail Laporan</h1>
       </div>
 
       <img
         src={report.image_url}
         alt="Foto kerusakan"
-        className="w-full rounded-lg object-cover max-h-80 border border-[var(--border)]"
+        className="w-full rounded-lg object-cover max-h-80 border border-[var(--border)] animate-rise-in"
+        style={{ animationDelay: "40ms" }}
       />
 
-      <Card className="space-y-4">
+      <Card className="space-y-4" animate delay={80}>
         <div className="flex items-center justify-between">
           <StatusTag status={report.status} />
           <SeverityTag severity={report.severity} />
@@ -120,11 +128,15 @@ export default function ReportDetailPage() {
       </Card>
 
       {report.history?.length > 0 && (
-        <Card>
+        <Card animate delay={120}>
           <h2 className="font-display font-semibold text-[var(--ink)] mb-4">Riwayat Status</h2>
           <ol className="space-y-4">
-            {report.history.map((h) => (
-              <li key={h.id} className="pl-4 border-l-2 border-[var(--border)]">
+            {report.history.map((h, i) => (
+              <li
+                key={h.id}
+                style={{ animationDelay: `${140 + i * 40}ms` }}
+                className="pl-4 border-l-2 border-[var(--border)] animate-rise-in"
+              >
                 <p className="text-sm font-medium text-[var(--ink)]">
                   {STATUS_LABELS[h.previous_status] || "Dibuat"} → {STATUS_LABELS[h.current_status]}
                 </p>
@@ -138,7 +150,7 @@ export default function ReportDetailPage() {
       )}
 
       {(user?.role === "admin" || user?.role === "maintenance") && (
-        <Card>
+        <Card animate delay={160}>
           <h2 className="font-display font-semibold text-[var(--ink)] mb-4">Ubah Status</h2>
           <div className="flex flex-wrap gap-2">
             {VALID_STATUSES.map((s) => (
@@ -146,11 +158,14 @@ export default function ReportDetailPage() {
                 key={s}
                 onClick={() => handleStatusUpdate(s)}
                 disabled={updating || report.status === s}
-                className={`px-3 py-1.5 text-sm rounded-md border transition ${
-                  report.status === s
-                    ? "bg-[var(--brand)] text-white border-[var(--brand)]"
-                    : "bg-white text-[var(--ink)] border-[var(--border)] hover:bg-[var(--brand-soft)]"
-                } disabled:opacity-40`}
+                className={`px-3 py-1.5 text-sm rounded-md border
+                            transition-[background-color,border-color,transform] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                            active:scale-[0.96] active:duration-[var(--dur-instant)]
+                            disabled:opacity-40 disabled:active:scale-100 ${
+                              report.status === s
+                                ? "bg-[var(--brand)] text-white border-[var(--brand)]"
+                                : "bg-white text-[var(--ink)] border-[var(--border)] hover:bg-[var(--brand-soft)]"
+                            }`}
               >
                 {STATUS_LABELS[s]}
               </button>

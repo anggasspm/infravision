@@ -8,6 +8,19 @@ const STATUS_LABELS = {
   in_progress: "Dalam Proses", under_repair: "Sedang Diperbaiki", completed: "Selesai",
 };
 
+function ReportRowSkeleton() {
+  return (
+    <div className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-lg p-4">
+      <div className="w-16 h-16 rounded-md shrink-0 skeleton" />
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="h-4 w-3/4 skeleton" />
+        <div className="h-3 w-1/3 skeleton" />
+      </div>
+      <div className="w-20 h-4 skeleton" />
+    </div>
+  );
+}
+
 export default function MyReportsPage() {
   const [reports, setReports] = useState([]);
   const [total, setTotal] = useState(0);
@@ -36,22 +49,27 @@ export default function MyReportsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-6">Laporan Saya</h1>
+      <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-6 animate-rise-in">
+        Laporan Saya
+      </h1>
 
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex gap-3 mb-5 flex-wrap animate-rise-in" style={{ animationDelay: "40ms" }}>
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari deskripsi..."
           className="border border-[var(--border)] rounded-md px-3 py-2 text-sm flex-1 min-w-48
-                     text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--brand)] transition"
+                     text-[var(--ink)] placeholder-[var(--ink-soft)]
+                     transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                     focus:outline-none focus:border-[var(--brand)] focus:shadow-[0_0_0_3px_var(--brand-soft)]"
         />
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--ink)]
-                     focus:outline-none focus:border-[var(--brand)] transition"
+                     transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                     focus:outline-none focus:border-[var(--brand)] focus:shadow-[0_0_0_3px_var(--brand-soft)]"
         >
           <option value="">Semua Status</option>
           {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -61,17 +79,19 @@ export default function MyReportsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center text-[var(--ink-soft)] py-16 text-sm">Memuat...</div>
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <ReportRowSkeleton key={i} />)}
+        </div>
       ) : reports.length === 0 ? (
         isEmptyFromStart ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 animate-rise-in">
             <p className="text-[var(--ink-soft)] text-sm mb-4">Kamu belum membuat laporan apapun.</p>
             <Link to="/submit" className="text-sm font-medium text-[var(--brand)] hover:underline">
               Buat laporan pertama →
             </Link>
           </div>
         ) : (
-          <div className="text-center py-20">
+          <div className="text-center py-20 animate-rise-in">
             <p className="text-[var(--ink-soft)] text-sm mb-4">Tidak ada laporan yang cocok dengan pencarian ini.</p>
             <button
               onClick={() => { setSearch(""); setStatusFilter(""); }}
@@ -83,12 +103,14 @@ export default function MyReportsPage() {
         )
       ) : (
         <div className="space-y-3">
-          {reports.map((r) => (
+          {reports.map((r, i) => (
             <Link
               key={r.id}
               to={`/report/${r.id}`}
-              className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-lg p-4
-                         hover:border-[var(--brand)] transition"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+              className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-lg p-4 animate-rise-in
+                         transition-[border-color,transform,box-shadow] duration-[var(--dur-base)] ease-[var(--ease-out)]
+                         hover:border-[var(--brand)] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)]"
             >
               <img
                 src={r.image_url}
@@ -115,7 +137,9 @@ export default function MyReportsPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1.5 border border-[var(--border)] rounded-md hover:bg-[var(--brand-soft)] disabled:opacity-40 transition"
+            className="px-3 py-1.5 border border-[var(--border)] rounded-md
+                       transition-[background-color,transform] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                       hover:bg-[var(--brand-soft)] active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100"
           >
             ← Sebelumnya
           </button>
@@ -123,7 +147,9 @@ export default function MyReportsPage() {
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={page * PAGE_SIZE >= total}
-            className="px-3 py-1.5 border border-[var(--border)] rounded-md hover:bg-[var(--brand-soft)] disabled:opacity-40 transition"
+            className="px-3 py-1.5 border border-[var(--border)] rounded-md
+                       transition-[background-color,transform] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                       hover:bg-[var(--brand-soft)] active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100"
           >
             Berikutnya →
           </button>
