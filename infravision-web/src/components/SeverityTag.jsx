@@ -9,7 +9,9 @@ export default function SeverityTag({ severity }) {
   const cfg = SEVERITY_CONFIG[severity] || { label: "—", color: "#52606D" };
   return (
     <span
-      className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded"
+      key={severity}
+      className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded
+                 animate-status-update transition-colors duration-[var(--dur-base)] ease-[var(--ease-in-out)]"
       style={{ color: cfg.color, background: `${cfg.color}14` }}
     >
       {cfg.label}
