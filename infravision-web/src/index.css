@@ -14,6 +14,20 @@
 
   --font-display: "Source Serif 4", Georgia, serif;
   --font-body: "Inter", -apple-system, sans-serif;
+
+  /* === Motion tokens ===
+     3 easing curves, each with a distinct job:
+     - ease-out    : elemen MASUK ke layar (card, modal, page) — deselerasi tegas
+     - ease-in-out : perubahan STATE (hover -> normal) — simetris, tidak mengejutkan
+     - ease-spring : KONFIRMASI aksi (submit, status berubah) — overshoot halus */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --dur-instant: 100ms;
+  --dur-fast: 160ms;
+  --dur-base: 220ms;
+  --dur-slow: 320ms;
 }
 
 body {
@@ -32,4 +46,86 @@ h1, h2, .font-display {
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+/* ============================================
+   Keyframes — dipakai lintas komponen via .animate-*
+   ============================================ */
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-rise-in {
+  animation: rise-in var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-page-in {
+  animation: page-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes status-update {
+  0%   { opacity: 0; transform: translateX(-4px); }
+  60%  { opacity: 1; transform: translateX(1px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.animate-status-update {
+  animation: status-update var(--dur-base) var(--ease-spring) both;
+}
+
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0); }
+  20%      { transform: rotate(-12deg); }
+  40%      { transform: rotate(10deg); }
+  60%      { transform: rotate(-6deg); }
+  80%      { transform: rotate(3deg); }
+}
+.animate-bell-ring {
+  animation: bell-ring 600ms var(--ease-spring) 1;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.9; }
+}
+.skeleton {
+  background: var(--border);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.4s var(--ease-in-out) infinite;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toast-in var(--dur-base) var(--ease-spring) both;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Stagger helper — dipakai bersama animate-rise-in via inline style animationDelay */
+.stagger-item {
+  opacity: 0;
+}
+
+/* ============================================
+   Aksesibilitas — hormati preferensi pengguna
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
