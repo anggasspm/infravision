@@ -1,8 +1,6 @@
-
-export const FREE_MAP_STYLE_URL = "https://demotiles.maplibre.org/style.json"; // TEMP: buat tes
-
-export const MAP_TINT_FILTER =
-  "sepia(0.22) saturate(1.15) hue-rotate(-6deg) brightness(1.03) contrast(0.96)";
+export const TILE_LAYER_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+export const TILE_LAYER_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 export const SEVERITY_CONFIG = {
   low:      { label: "Rendah", color: "#52606D" },
@@ -23,31 +21,11 @@ export const STATUS_LABELS = {
 export const CATEGORIES = ["Road Damage", "Pothole", "Unclassified"];
 export const STATUSES = Object.keys(STATUS_LABELS);
 
-export const DEFAULT_CENTER = [106.8, -6.2]; // [lng, lat] — MapLibre pakai urutan ini
+// Leaflet pakai urutan [lat, lng] — beda dari MapLibre yang pakai [lng, lat]
+export const DEFAULT_CENTER_LATLNG = [-6.2, 106.8];
 export const DEFAULT_ZOOM = 12;
 
-// Ubah daftar report (format internal InfraVision) jadi FeatureCollection GeoJSON
-// yang siap dipakai sebagai source clustering MapLibre.
-export function reportsToGeoJSON(reports) {
-  return {
-    type: "FeatureCollection",
-    features: reports.map((r) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [r.longitude, r.latitude] },
-      properties: {
-        id: r.id,
-        category: r.category || "Tidak diketahui",
-        severity: r.severity || "low",
-        status: r.status || "pending",
-        priority_score: r.priority_score ?? null,
-        is_duplicate: !!r.is_duplicate,
-      },
-    })),
-  };
-}
-
 // Markup popup satu laporan, disenadakan dengan Card/SeverityTag/StatusTag
-// tanpa perlu render React di dalam popup MapLibre (yang berjalan di luar DOM React).
 export function reportPopupHTML(props) {
   const sev = SEVERITY_CONFIG[props.severity] || SEVERITY_CONFIG.low;
   const statusLabel = STATUS_LABELS[props.status] || props.status;

@@ -1,160 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import maplibregl from "maplibre-gl";
+import L from "leaflet";
+import "leaflet.markercluster";
 import api from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
 import MapLegend from "../components/MapLegend";
 import { PrimaryButton, SecondaryButton } from "../components/Button";
 import SpinnerIcon from "../components/icons/SpinnerIcon";
 import {
-  FREE_MAP_STYLE_URL,
-  MAP_TINT_FILTER,
+  TILE_LAYER_URL,
+  TILE_LAYER_ATTRIBUTION,
   SEVERITY_CONFIG,
   STATUS_LABELS,
   CATEGORIES,
   STATUSES,
-  DEFAULT_CENTER,
+  DEFAULT_CENTER_LATLNG,
   DEFAULT_ZOOM,
-  reportsToGeoJSON,
   reportPopupHTML,
 } from "../lib/mapStyle";
 
 const SEVERITIES = Object.keys(SEVERITY_CONFIG);
 const POLL_INTERVAL_MS = 20000;
-
-// Layer laporan ter-cluster: MapLibre melakukan clustering di GPU lewat
-// sumber GeoJSON (`cluster: true`), jadi kita tidak butuh leaflet.markercluster
-// lagi — hasilnya lebih ringan untuk ribuan titik sekaligus.
-function ReportsLayer({ map, geojson, onReady }) {
-  useEffect(() => {
-    if (!map) return;
-
-    const setup = () => {
-      if (map.getSource("reports")) {
-        map.getSource("reports").setData(geojson);
-        return;
-      }
-
-      map.addSource("reports", {
-        type: "geojson",
-        data: geojson,
-        cluster: true,
-        clusterRadius: 46,
-        clusterMaxZoom: 15,
-      });
-
-      // Cincin berdenyut di bawah titik severity "critical" — sinyal visual
-      // bahwa peta ini hidup & memantau kondisi terbaru, bukan gambar statis.
-      map.addLayer({
-        id: "critical-pulse",
-        type: "circle",
-        source: "reports",
-        filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "severity"], "critical"]],
-        paint: {
-          "circle-radius": 10,
-          "circle-color": SEVERITY_CONFIG.critical.color,
-          "circle-opacity": 0.35,
-        },
-      });
-
-      map.addLayer({
-        id: "clusters",
-        type: "circle",
-        source: "reports",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": "#1A2E22",
-          "circle-opacity": 0.88,
-          "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 30, 26],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
-        },
-      });
-
-      map.addLayer({
-        id: "cluster-count",
-        type: "symbol",
-        source: "reports",
-        filter: ["has", "point_count"],
-        layout: {
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-font": ["Noto Sans Bold"],
-          "text-size": 12,
-        },
-        paint: { "text-color": "#ffffff" },
-      });
-
-      map.addLayer({
-        id: "unclustered-point",
-        type: "circle",
-        source: "reports",
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-radius": 8,
-          "circle-color": [
-            "match", ["get", "severity"],
-            "critical", SEVERITY_CONFIG.critical.color,
-            "high", SEVERITY_CONFIG.high.color,
-            "medium", SEVERITY_CONFIG.medium.color,
-            SEVERITY_CONFIG.low.color,
-          ],
-          "circle-stroke-width": 1.5,
-          "circle-stroke-color": "#ffffff",
-        },
-      });
-
-      // Klik cluster -> zoom masuk ke area itu
-      map.on("click", "clusters", (e) => {
-        const feature = e.features[0];
-        const clusterId = feature.properties.cluster_id;
-        map.getSource("reports").getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err) return;
-          map.easeTo({ center: feature.geometry.coordinates, zoom });
-        });
-      });
-
-      // Klik titik tunggal -> popup detail laporan
-      map.on("click", "unclustered-point", (e) => {
-        const feature = e.features[0];
-        new maplibregl.Popup({ closeButton: true, maxWidth: "240px" })
-          .setLngLat(feature.geometry.coordinates)
-          .setHTML(reportPopupHTML(feature.properties))
-          .addTo(map);
-      });
-
-      ["clusters", "unclustered-point"].forEach((id) => {
-        map.on("mouseenter", id, () => (map.getCanvas().style.cursor = "pointer"));
-        map.on("mouseleave", id, () => (map.getCanvas().style.cursor = ""));
-      });
-
-      onReady?.();
-    };
-
-    if (map.isStyleLoaded()) setup();
-    else map.once("load", setup);
-  }, [map, geojson, onReady]);
-
-  // Denyut halus pada cincin critical — dijalankan lewat requestAnimationFrame,
-  // bukan setInterval, supaya tetap mulus & otomatis berhenti saat tab tidak aktif.
-  useEffect(() => {
-    if (!map) return;
-    let raf;
-    const start = performance.now();
-    const tick = (now) => {
-      if (map.getLayer("critical-pulse")) {
-        const t = ((now - start) % 1800) / 1800;
-        const wave = Math.sin(t * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5; // 0 -> 1 -> 0
-        map.setPaintProperty("critical-pulse", "circle-radius", 8 + wave * 10);
-        map.setPaintProperty("critical-pulse", "circle-opacity", 0.4 - wave * 0.3);
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [map]);
-
-  return null;
-}
 
 function ToolbarButton({ active, onClick, children }) {
   return (
@@ -179,7 +45,9 @@ export default function MapPage() {
   const { user } = useAuth();
 
   const containerRef = useRef(null);
-  const [map, setMap] = useState(null);
+  const mapRef = useRef(null);
+  const clusterRef = useRef(null);
+
   const [reports, setReports] = useState([]);
   const [filters, setFilters] = useState({ severity: "", status: "", category: "" });
   const [loading, setLoading] = useState(true);
@@ -187,48 +55,61 @@ export default function MapPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Init peta sekali saja
+  // Init peta sekali saja — Leaflet render tile sebagai <img> DOM biasa,
+  // bukan WebGL canvas, jadi jauh lebih tahan terhadap ekstensi
+  // privasi/pengaturan browser yang suka membatasi WebGL.
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || mapRef.current) return;
 
-    const instance = new maplibregl.Map({
-      container: containerRef.current,
-      style: FREE_MAP_STYLE_URL,
-      center: DEFAULT_CENTER,
+    const instance = L.map(containerRef.current, {
+      center: DEFAULT_CENTER_LATLNG,
       zoom: DEFAULT_ZOOM,
-      attributionControl: false,
-    });
-    instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    instance.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
-
-    instance.on("error", (e) => {
-      console.error("MapLibre error:", e.error || e);
+      zoomControl: true,
+      attributionControl: true,
     });
 
-    instance.on("load", () => {
-     // instance.getCanvas().style.filter = MAP_TINT_FILTER;
-      instance.resize();
+    L.tileLayer(TILE_LAYER_URL, {
+      attribution: TILE_LAYER_ATTRIBUTION,
+      maxZoom: 19,
+      subdomains: "abcd",
+    }).addTo(instance);
+
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 46,
+      spiderfyOnMaxZoom: true,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount();
+        const size = count < 10 ? 32 : count < 30 ? 38 : 46;
+        return L.divIcon({
+          html: `<div style="background:#1A2E22;color:#fff;width:${size}px;height:${size}px;border-radius:50%;
+                       display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;
+                       border:2px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.3)">${count}</div>`,
+          className: "",
+          iconSize: [size, size],
+        });
+      },
     });
+    instance.addLayer(clusterGroup);
 
-    setMap(instance);
+    mapRef.current = instance;
+    clusterRef.current = clusterGroup;
 
-    // Paksa peta resize setiap kali ukuran container-nya benar-benar berubah
-    // (misal toolbar wrap ke 2 baris di layar kecil, atau layout flex baru
-    // selesai dihitung browser). Ini yang sering hilang saat peta dibungkus
-    // flex/grid layout — canvas WebGL tidak auto-resize sendiri.
-    const resizeObserver = new ResizeObserver(() => instance.resize());
+    // Peta di dalam layout flex (toolbar + area peta) butuh diberitahu
+    // manual kalau ukuran containernya berubah, karena Leaflet tidak
+    // auto-resize sendiri saat parent-nya di-resize oleh CSS.
+    const resizeObserver = new ResizeObserver(() => instance.invalidateSize());
     resizeObserver.observe(containerRef.current);
 
     return () => {
       resizeObserver.disconnect();
       instance.remove();
+      mapRef.current = null;
+      clusterRef.current = null;
     };
   }, []);
 
   // Muat data pertama kali, lalu polling ringan supaya peta terasa "hidup"
-  // tanpa harus refresh manual. Logic fetch didefinisikan langsung di dalam
-  // effect (bukan lewat useCallback terpisah) + flag `ignore` untuk cleanup,
-  // supaya tidak ada setState yang "menyelinap" dari luar effect.
+  // tanpa harus refresh manual.
   useEffect(() => {
     let ignore = false;
 
@@ -277,6 +158,29 @@ export default function MapPage() {
     return true;
   });
 
+  // Render ulang marker setiap kali data/filter berubah
+  useEffect(() => {
+    const cluster = clusterRef.current;
+    if (!cluster) return;
+
+    cluster.clearLayers();
+
+    filtered.forEach((r) => {
+      const cfg = SEVERITY_CONFIG[r.severity] || SEVERITY_CONFIG.low;
+      const marker = L.circleMarker([r.latitude, r.longitude], {
+        radius: 8,
+        color: "#ffffff",
+        weight: 1.5,
+        fillColor: cfg.color,
+        fillOpacity: 1,
+        className: r.severity === "critical" ? "critical-pulse-marker" : "",
+      });
+      marker.bindPopup(reportPopupHTML(r), { maxWidth: 240 });
+      cluster.addLayer(marker);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered]);
+
   const counts = filtered.reduce((acc, r) => {
     acc[r.severity] = (acc[r.severity] || 0) + 1;
     return acc;
@@ -289,9 +193,6 @@ export default function MapPage() {
     <div className="flex flex-col h-[calc(100vh-64px)] w-full">
       {/* ============================================
           Toolbar aksi — di bawah navbar, di atas peta.
-          Ini yang membuat "menambah laporan" langsung
-          terlihat begitu website dibuka, bukan tersembunyi
-          di menu.
           ============================================ */}
       <div className="shrink-0 bg-white border-b border-[var(--border)] relative z-20">
         <div className="px-4 sm:px-6 py-3 flex items-center gap-3 flex-wrap justify-between">
@@ -376,12 +277,10 @@ export default function MapPage() {
         )}
 
         <div ref={containerRef} className="absolute inset-0" />
-        <ReportsLayer map={map} geojson={reportsToGeoJSON(filtered)} />
 
-        {/* Panel filter — drawer yang muncul dari toolbar, bukan kotak yang
-            selalu menutupi peta sejak awal. Peta jadi tampilan utama. */}
+        {/* Panel filter — drawer */}
         <div
-          className={`absolute top-3 left-4 z-10 w-72 max-w-[calc(100%-2rem)] transition-[opacity,transform] duration-[var(--dur-base)] ease-[var(--ease-out)]
+          className={`absolute top-3 left-4 z-[401] w-72 max-w-[calc(100%-2rem)] transition-[opacity,transform] duration-[var(--dur-base)] ease-[var(--ease-out)]
                       ${panelOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}`}
         >
           <div className="rounded-xl bg-white/95 backdrop-blur-md border border-[var(--border)] shadow-[0_8px_28px_rgba(15,23,42,0.14)] overflow-hidden">
@@ -446,10 +345,9 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* Empty state — kalau belum ada laporan sama sekali, arahkan
-            langsung ke aksi "lapor pertama", bukan peta kosong yang membisu. */}
+        {/* Empty state */}
         {!loading && reports.length === 0 && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 z-[400] flex items-center justify-center pointer-events-none">
             <div className="pointer-events-auto max-w-sm text-center bg-white/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-6 shadow-[0_8px_28px_rgba(15,23,42,0.12)] animate-rise-in">
               <p className="font-display text-lg font-semibold text-[var(--ink)] mb-1.5">Belum ada laporan di sini</p>
               <p className="text-sm text-[var(--ink-soft)] mb-4 leading-relaxed">
@@ -460,8 +358,8 @@ export default function MapPage() {
           </div>
         )}
 
-        {/* Legenda + waktu update, pojok kiri bawah */}
-        <div className="absolute bottom-5 left-4 z-10 flex flex-col gap-2 items-start">
+        {/* Legenda + waktu update */}
+        <div className="absolute bottom-5 left-4 z-[400] flex flex-col gap-2 items-start">
           <MapLegend counts={counts} />
           {lastUpdated && (
             <span className="text-[11px] text-[var(--ink-soft)] bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full">
