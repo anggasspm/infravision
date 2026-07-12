@@ -3,14 +3,20 @@ import { useAuth } from "../../context/AuthContext";
 import BellIcon from "../icons/BellIcon";
 
 const NAV_ITEMS = [
-  { to: "/map", label: "Peta" },
   { to: "/submit", label: "Laporkan" },
+  { to: "/lacak", label: "Lacak Laporan" },
+];
+
+const NAV_ITEMS_LOGGED_IN = [
+  { to: "/map", label: "Peta" },
   { to: "/my-reports", label: "Laporan Saya" },
 ];
 
 export default function Navbar({ hasUnreadNotifications = false }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
+
+  const items = user ? [...NAV_ITEMS, ...NAV_ITEMS_LOGGED_IN] : NAV_ITEMS;
 
   return (
     <header className="border-b border-[var(--border)] bg-white">
@@ -24,7 +30,7 @@ export default function Navbar({ hasUnreadNotifications = false }) {
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const active = pathname === item.to;
             return (
               <Link
@@ -53,22 +59,32 @@ export default function Navbar({ hasUnreadNotifications = false }) {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link
-            to="/notifications"
-            className="text-[var(--ink-soft)] hover:text-[var(--ink)]
-                       transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
-            aria-label="Notifikasi"
-          >
-            <BellIcon hasUnread={hasUnreadNotifications} />
-          </Link>
-          {user && (
-            <button
-              onClick={logout}
-              className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]
-                         transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+          {user ? (
+            <>
+              <Link
+                to="/notifications"
+                className="text-[var(--ink-soft)] hover:text-[var(--ink)]
+                           transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+                aria-label="Notifikasi"
+              >
+                <BellIcon hasUnread={hasUnreadNotifications} />
+              </Link>
+              <button
+                onClick={logout}
+                className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]
+                           transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+              >
+                {user.name?.split(" ")[0]} · Keluar
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="text-sm font-medium text-[var(--brand)]
+                         transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-out)] hover:opacity-70"
             >
-              {user.name?.split(" ")[0]} · Keluar
-            </button>
+              Masuk
+            </Link>
           )}
         </div>
       </div>

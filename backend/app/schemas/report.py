@@ -14,7 +14,8 @@ class ReportCreate(BaseModel):
 
 class ReportResponse(BaseModel):
     id: str
-    user_id: str
+    user_id: Optional[str] = None  # None = laporan tanpa akun (tamu)
+    tracking_code: str
     category: Optional[str] = None
     description: str
     image_url: str
@@ -71,3 +72,21 @@ class DuplicateCheckResponse(BaseModel):
     duplicate_report_id: Optional[str] = None
     distance_meters: Optional[float] = None
     image_similarity: Optional[float] = None
+
+class TrackingHistoryItem(BaseModel):
+    previous_status: Optional[str] = None
+    current_status: str
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TrackingStatusResponse(BaseModel):
+    tracking_code: str
+    category: Optional[str] = None
+    severity: Optional[str] = None
+    status: str
+    is_duplicate: bool
+    created_at: datetime
+    history: List[TrackingHistoryItem] = []

@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import SubmitReportPage from "./pages/SubmitReportPage";
+import TrackReportPage from "./pages/TrackReportPage";
 import ReportDetailPage from "./pages/ReportDetailPage";
 import MapPage from "./pages/MapPage";
 import MyReportsPage from "./pages/MyReportsPage";
@@ -15,10 +16,6 @@ import NotificationsPage from "./pages/NotificationsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import MaintenanceDashboardPage from "./pages/maintenance/MaintenanceDashboardPage";
 
-// key={pathname} memaksa React remount subtree Routes setiap kali path
-// berubah, sehingga animasi .animate-page-in re-trigger di setiap navigasi.
-// Pergeseran 4px sengaja dibuat kecil agar terasa sebagai kontinuitas,
-// bukan slide-transition penuh ala mobile app.
 function AnimatedRoutes() {
   const location = useLocation();
   return (
@@ -28,9 +25,11 @@ function AnimatedRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
+        <Route path="/submit" element={<SubmitReportPage />} />
+        <Route path="/lacak" element={<TrackReportPage />} />
+
         {/* Protected — semua role */}
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="/submit" element={<ProtectedRoute><SubmitReportPage /></ProtectedRoute>} />
         <Route path="/report/:id" element={<ProtectedRoute><ReportDetailPage /></ProtectedRoute>} />
         <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
         <Route path="/my-reports" element={<ProtectedRoute><MyReportsPage /></ProtectedRoute>} />

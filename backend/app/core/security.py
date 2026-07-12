@@ -1,3 +1,5 @@
+import secrets
+import string
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
@@ -6,6 +8,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 oauth2_scheme = HTTPBearer()
+
+oauth2_scheme_optional = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -48,6 +52,22 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_
         raise HTTPException(status_code=401, detail="Token tidak valid atau expired")
 
 
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme_optional),
+):
+    """Dipakai di endpoint yang boleh diakses tanpa login (mis. buat laporan
+    tanpa akun), tapi tetap mengenali user kalau dia sedang login.
+
+    - Tidak ada header Authorization sama sekali -> return None (tamu).
+    - Header ada tapi token rusak/expired -> tetap 401 (jangan diam-diam
+      dianggap tamu, supaya user yang sesi-nya expired sadar harus login
+      ulang alih-alih laporannya kepencet jadi anonim tanpa disadari).
+    """
+    if credentials is None:
+        return None
+    return get_current_user(credentials)
+
+
 def require_role(*allowed_roles: str):
     """Dependency factory untuk role guard, dipakai di endpoint admin/maintenance nanti."""
     def role_checker(current_user: dict = Depends(get_current_user)):
@@ -58,3 +78,11 @@ def require_role(*allowed_roles: str):
             )
         return current_user
     return role_checker
+
+
+_TRACKING_ALPHABET = "".join(c for c in string.ascii_uppercase + string.digits if c not in "01OI")
+
+
+def generate_tracking_code() -> str:
+    suffix = "".join(secrets.choice(_TRACKING_ALPHABET) for _ in range(6))
+    return f"INV-{suffix}"

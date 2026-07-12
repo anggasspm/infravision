@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.database import get_db
@@ -8,9 +8,11 @@ from app.schemas.report import (
     ReportCreate, ReportResponse, ReportListResponse,
     ReportStatusUpdate, ReportDetailResponse, VALID_STATUSES,
     DuplicateCheckRequest, DuplicateCheckResponse,
+    TrackingStatusResponse,
 )
 from app.schemas.common import SuccessResponse
-from app.core.security import get_current_user, require_role
+from app.core.security import get_current_user, get_current_user_optional, require_role, generate_tracking_code
+from app.core.rate_limit import check_guest_rate_limit
 from app.services.ai_service import classify_image, download_image_temp, assess_severity, calculate_priority
 from app.services.duplicate_service import find_duplicate
 from app.services.workflow_service import transition_report_status
@@ -24,14 +26,31 @@ ALLOWED_SORT_FIELDS = {
 }
 
 
+def _unique_tracking_code(db: Session) -> str:
+    # Peluang tabrakan sangat kecil (36^6 kombinasi setelah dikurangi
+    # karakter ambigu), tapi tetap kita cek ke DB dan retry biar aman.
+    for _ in range(5):
+        code = generate_tracking_code()
+        exists = db.query(Report.id).filter(Report.tracking_code == code).first()
+        if not exists:
+            return code
+    raise HTTPException(status_code=500, detail="Gagal membuat kode lacak, coba lagi")
+
+
 @router.post("", response_model=SuccessResponse[ReportResponse], status_code=201)
 def create_report(
     data: ReportCreate,
-    current_user: dict = Depends(get_current_user),
+    request: Request,
+    current_user: Optional[dict] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
+
+    if current_user is None:
+        check_guest_rate_limit(request)
+
     report = Report(
-        user_id=current_user["id"],
+        user_id=current_user["id"] if current_user else None,
+        tracking_code=_unique_tracking_code(db),
         category="Unclassified",  # placeholder sampai AI selesai klasifikasi — kolom category NOT NULL di DB
         description=data.description,
         image_url=data.image_url,
@@ -72,7 +91,11 @@ def create_report(
     db.commit()
     db.refresh(report)
 
-    return SuccessResponse(data=ReportResponse.from_orm(report), message="Laporan berhasil dibuat")
+    message = "Laporan berhasil dibuat"
+    if current_user is None:
+        message += f" — simpan kode lacak {report.tracking_code} untuk cek statusnya nanti"
+
+    return SuccessResponse(data=ReportResponse.from_orm(report), message=message)
 
 
 @router.get("", response_model=SuccessResponse[ReportListResponse])
@@ -100,6 +123,36 @@ def list_reports(
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
     result = ReportListResponse(total=total, page=page, page_size=page_size, items=items)
+    return SuccessResponse(data=result, message="OK")
+
+@router.get("/track/{tracking_code}", response_model=SuccessResponse[TrackingStatusResponse])
+def track_report(tracking_code: str, db: Session = Depends(get_db)):
+    """Endpoint publik: cek status laporan tanpa login, cukup pakai kode lacak.
+    Sengaja tidak mengembalikan user_id/changed_by supaya tidak membocorkan
+    identitas siapa pun ke publik."""
+    report = (
+        db.query(Report)
+        .filter(Report.tracking_code == tracking_code.strip().upper())
+        .first()
+    )
+    if not report:
+        raise HTTPException(status_code=404, detail="Kode lacak tidak ditemukan")
+
+    history = (
+        db.query(ReportHistory)
+        .filter(ReportHistory.report_id == report.id)
+        .order_by(ReportHistory.updated_at.asc())
+        .all()
+    )
+    result = TrackingStatusResponse(
+        tracking_code=report.tracking_code,
+        category=report.category,
+        severity=report.severity,
+        status=report.status,
+        is_duplicate=report.is_duplicate,
+        created_at=report.created_at,
+        history=history,
+    )
     return SuccessResponse(data=result, message="OK")
 
 

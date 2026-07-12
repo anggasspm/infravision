@@ -1,14 +1,93 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../lib/axios";
+import { useAuth } from "../context/AuthContext";
 import InfoIcon from "../components/icons/InfoIcon";
 import SpinnerIcon from "../components/icons/SpinnerIcon";
 
 const CLOUD_NAME    = "djzh35nga";
 const UPLOAD_PRESET = "infravision_uploads";
 
+function GuestSuccessScreen({ trackingCode, onReportAnother }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(trackingCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API bisa gagal di beberapa browser/mode — biarkan user
+      // salin manual dari teks yang sudah ditampilkan, tidak perlu error.
+    }
+  };
+
+  return (
+    <div className="bg-[var(--paper)] min-h-screen flex items-center justify-center px-6">
+      <div className="max-w-sm w-full text-center animate-rise-in">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+          style={{ background: "var(--brand-soft)" }}
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+
+        <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">
+          Laporan terkirim
+        </h1>
+        <p className="text-sm text-[var(--ink-soft)] leading-relaxed mb-6">
+          Karena kamu lapor tanpa akun, simpan kode ini untuk cek status laporanmu kapan saja.
+        </p>
+
+        <button
+          onClick={handleCopy}
+          className="w-full flex items-center justify-between gap-3 rounded-lg border border-[var(--border)]
+                     bg-white px-5 py-4 mb-6 transition-[border-color,transform] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                     hover:border-[var(--brand)] active:scale-[0.99]"
+        >
+          <span className="font-display text-xl font-semibold tracking-wide text-[var(--ink)]">
+            {trackingCode}
+          </span>
+          <span className="text-xs font-medium text-[var(--brand)] shrink-0">
+            {copied ? "Tersalin ✓" : "Salin"}
+          </span>
+        </button>
+
+        <div className="flex flex-col gap-2.5">
+          <Link
+            to={`/lacak?code=${encodeURIComponent(trackingCode)}`}
+            className="w-full bg-[var(--brand)] text-white py-2.5 rounded-md text-sm font-medium
+                       transition-[transform,background-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                       hover:bg-[#13231A] active:scale-[0.98]"
+          >
+            Lacak status laporan ini
+          </Link>
+          <button
+            onClick={onReportAnother}
+            className="w-full border border-[var(--border)] bg-white text-[var(--ink)] py-2.5 rounded-md text-sm font-medium
+                       transition-[background-color,border-color] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                       hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]"
+          >
+            Buat laporan lain
+          </button>
+        </div>
+
+        <p className="text-xs text-[var(--ink-soft)] mt-6">
+          Mau semua laporanmu tersimpan otomatis & dapat notifikasi status?{" "}
+          <Link to="/register" className="text-[var(--brand)] font-medium hover:underline">
+            Buat akun
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function SubmitReportPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile]     = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -16,6 +95,17 @@ export default function SubmitReportPage() {
   const [coords, setCoords]           = useState({ latitude: null, longitude: null });
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
+  const [trackingCode, setTrackingCode] = useState(null);
+
+  const resetForm = () => {
+    setDescription("");
+    setImageFile(null);
+    setImagePreview(null);
+    setGpsStatus("idle");
+    setCoords({ latitude: null, longitude: null });
+    setError("");
+    setTrackingCode(null);
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -59,19 +149,35 @@ export default function SubmitReportPage() {
     setLoading(true);
     try {
       const image_url = await uploadToCloudinary(imageFile);
+
       const res = await api.post("/reports", {
         description,
         image_url,
         latitude: coords.latitude,
         longitude: coords.longitude,
       });
-      navigate(`/report/${res.data.data.id}`);
+
+      const report = res.data.data;
+      if (user) {
+        navigate(`/report/${report.id}`);
+      } else {
+
+        setTrackingCode(report.tracking_code);
+      }
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message || "Gagal mengirim laporan");
+      if (err.response?.status === 429) {
+        setError(err.response.data?.error?.message || "Terlalu banyak laporan dalam waktu singkat. Coba lagi nanti.");
+      } else {
+        setError(err.response?.data?.error?.message || err.message || "Gagal mengirim laporan");
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  if (trackingCode) {
+    return <GuestSuccessScreen trackingCode={trackingCode} onReportAnother={resetForm} />;
+  }
 
   return (
     <div className="bg-[var(--paper)] min-h-screen">
@@ -83,6 +189,12 @@ export default function SubmitReportPage() {
           <p className="text-sm text-[var(--ink-soft)] mt-1.5">
             Foto akan dianalisis otomatis untuk menentukan kategori dan prioritas.
           </p>
+          {!user && (
+            <p className="text-xs text-[var(--ink-soft)] mt-2 pl-3 border-l-2" style={{ borderColor: "var(--brand)" }}>
+              Kamu belum masuk — tidak masalah, laporan tetap bisa dikirim. Kamu akan dapat
+              kode lacak untuk cek statusnya nanti.
+            </p>
+          )}
         </div>
 
         {error && (
