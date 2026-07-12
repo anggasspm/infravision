@@ -206,7 +206,7 @@ export default function MapPage() {
     });
 
     instance.on("load", () => {
-      instance.getCanvas().style.filter = MAP_TINT_FILTER;
+     // instance.getCanvas().style.filter = MAP_TINT_FILTER;
       instance.resize();
     });
 
