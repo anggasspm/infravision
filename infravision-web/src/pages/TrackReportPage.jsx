@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import api from "../lib/axios";
 import InfoIcon from "../components/icons/InfoIcon";
@@ -16,7 +16,9 @@ export default function TrackReportPage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const lookup = async (trackingCode) => {
+  // lookup tetap dipakai langsung oleh form submit (event handler) —
+  // di situ pemanggilan setState memang wajar karena dipicu aksi pengguna.
+  const lookup = useCallback(async (trackingCode) => {
     const clean = trackingCode.trim();
     if (!clean) return;
     setLoading(true);
@@ -31,11 +33,41 @@ export default function TrackReportPage() {
       setLoading(false);
       setSearched(true);
     }
-  };
+  }, []);
+
 
   useEffect(() => {
     const initial = searchParams.get("code");
-    if (initial) lookup(initial);
+    if (!initial) return;
+
+    let cancelled = false;
+    const clean = initial.trim();
+    if (!clean) return;
+
+    async function fetchInitial() {
+      setLoading(true);
+      setError("");
+      setResult(null);
+      try {
+        const res = await api.get(`/reports/track/${encodeURIComponent(clean)}`);
+        if (!cancelled) setResult(res.data.data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.response?.data?.error?.message || "Kode lacak tidak ditemukan");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setSearched(true);
+        }
+      }
+    }
+
+    fetchInitial();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = (e) => {
@@ -109,9 +141,6 @@ export default function TrackReportPage() {
               })}
             </p>
 
-            {/* Progres status sebagai langkah, bukan cuma label — supaya
-                pelapor tanpa akun tetap terasa "diurus", bukan cuma dikasih
-                satu kata status yang abstrak. */}
             <div className="space-y-3 mb-5">
               {STATUS_ORDER.map((step, i) => {
                 const done = i <= currentStepIndex;
