@@ -1,7 +1,20 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import maplibregl from "maplibre-gl";
 import { useAuth } from "../context/AuthContext";
+import api from "../lib/axios";
 import ArrowRightIcon from "../components/icons/ArrowRightIcon";
 import InfoIcon from "../components/icons/InfoIcon";
+import MapLegend from "../components/MapLegend";
+import { PrimaryButton, SecondaryButton } from "../components/Button";
+import {
+  FREE_MAP_STYLE_URL,
+  MAP_TINT_FILTER,
+  SEVERITY_CONFIG,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  reportsToGeoJSON,
+} from "../lib/mapStyle";
 
 const MENU_ITEMS = [
   {
@@ -44,32 +57,166 @@ const MENU_ITEMS = [
   },
 ];
 
+
+function HomeMapHero({ reports }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: FREE_MAP_STYLE_URL,
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      attributionControl: false,
+      scrollZoom: false,
+      cooperativeGestures: false,
+    });
+    mapRef.current = map;
+
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    map.getCanvas().style.filter = MAP_TINT_FILTER;
+
+    map.on("click", () => map.scrollZoom.enable());
+    map.on("mouseleave", () => map.scrollZoom.disable());
+
+    map.on("load", () => {
+      map.addSource("home-reports", { type: "geojson", data: reportsToGeoJSON(reports) });
+      map.addLayer({
+        id: "home-reports-glow",
+        type: "circle",
+        source: "home-reports",
+        paint: {
+          "circle-radius": 14,
+          "circle-color": [
+            "match", ["get", "severity"],
+            "critical", SEVERITY_CONFIG.critical.color,
+            "high", SEVERITY_CONFIG.high.color,
+            "medium", SEVERITY_CONFIG.medium.color,
+            SEVERITY_CONFIG.low.color,
+          ],
+          "circle-opacity": 0.18,
+        },
+      });
+      map.addLayer({
+        id: "home-reports-dot",
+        type: "circle",
+        source: "home-reports",
+        paint: {
+          "circle-radius": 5,
+          "circle-color": [
+            "match", ["get", "severity"],
+            "critical", SEVERITY_CONFIG.critical.color,
+            "high", SEVERITY_CONFIG.high.color,
+            "medium", SEVERITY_CONFIG.medium.color,
+            SEVERITY_CONFIG.low.color,
+          ],
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update titik kalau data reports datang setelah peta sudah siap
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const applyData = () => {
+      const source = map.getSource("home-reports");
+      if (source) source.setData(reportsToGeoJSON(reports));
+    };
+    if (map.isStyleLoaded()) applyData();
+    else map.once("load", applyData);
+  }, [reports]);
+
+  return <div ref={containerRef} className="absolute inset-0" />;
+}
+
 export default function HomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Selamat pagi" : hour < 17 ? "Selamat siang" : "Selamat malam";
 
+  const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    api.get("/map/reports")
+      .then((res) => {
+        const features = res.data.data?.features || [];
+        setReports(
+          features.map((f) => ({
+            id: f.properties.id,
+            latitude: f.geometry.coordinates[1],
+            longitude: f.geometry.coordinates[0],
+            severity: f.properties.severity,
+            status: f.properties.status,
+          }))
+        );
+      })
+      .catch(() => setReports([]));
+  }, []);
+
+  const counts = reports.reduce((acc, r) => {
+    acc[r.severity] = (acc[r.severity] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="bg-[var(--paper)] min-h-screen">
-      {/* Hero Section */}
-      <div className="bg-white border-b border-[var(--border)]">
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center gap-3 mb-3 animate-rise-in">
-            <div className="w-2 h-2 rounded-full" style={{ background: "var(--success)" }}></div>
-            <span className="text-sm text-[var(--ink-soft)] font-medium">Sistem aktif</span>
+      {/* Hero: peta hidup sebagai tampilan pertama, bukan teks statis */}
+      <div className="relative h-[62vh] min-h-[420px] w-full overflow-hidden border-b border-[var(--border)] animate-rise-in">
+        <HomeMapHero reports={reports} />
+
+        {/* Vignette halus di tepi supaya kartu overlay tetap terbaca di atas peta apapun warnanya */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(15,23,42,0.16) 0%, rgba(15,23,42,0) 28%, rgba(15,23,42,0) 72%, rgba(15,23,42,0.10) 100%)",
+          }}
+        />
+
+        {/* Kartu kaca berisi sapaan + aksi utama, mengambang di atas peta */}
+        <div className="pointer-events-none absolute inset-0 flex items-start">
+          <div className="max-w-4xl w-full mx-auto px-6 pt-8 sm:pt-10">
+            <div
+              className="pointer-events-auto max-w-md rounded-xl bg-white/85 backdrop-blur-md
+                         border border-white/60 shadow-[0_12px_32px_rgba(15,23,42,0.14)] p-6"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-2 h-2 rounded-full" style={{ background: "var(--success)" }} />
+                <span className="text-xs text-[var(--ink-soft)] font-medium uppercase tracking-wide">
+                  Peta langsung &middot; {reports.length} laporan
+                </span>
+              </div>
+              <h1 className="font-display text-2xl sm:text-3xl font-semibold text-[var(--ink)] mb-2">
+                {greeting}, {user?.name?.split(" ")[0]} 👋
+              </h1>
+              <p className="text-[var(--ink-soft)] text-sm sm:text-base leading-relaxed mb-5">
+                Ini yang sedang terjadi di sekitar kotamu. Bantu perbaiki infrastruktur dengan
+                melaporkan kerusakan yang kamu temukan.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <PrimaryButton onClick={() => navigate("/submit")}>Buat Laporan</PrimaryButton>
+                <SecondaryButton onClick={() => navigate("/map")}>Buka Peta Penuh</SecondaryButton>
+              </div>
+            </div>
           </div>
-          <h1
-            className="font-display text-3xl font-semibold text-[var(--ink)] mb-2 animate-rise-in"
-            style={{ animationDelay: "40ms" }}
-          >
-            {greeting}, {user?.name?.split(" ")[0]} 👋
-          </h1>
-          <p
-            className="text-[var(--ink-soft)] text-base max-w-md animate-rise-in"
-            style={{ animationDelay: "80ms" }}
-          >
-            Bantu perbaiki infrastruktur kotamu dengan melaporkan kerusakan yang kamu temukan.
-          </p>
+        </div>
+
+        {/* Legenda mengambang, pojok kanan bawah peta */}
+        <div className="absolute right-5 bottom-5 hidden sm:block">
+          <MapLegend counts={counts} />
         </div>
       </div>
 

@@ -1,61 +1,155 @@
-import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import { useNavigate } from "react-router-dom";
-import L from "leaflet";
-import "leaflet.markercluster";
+import { useEffect, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
 import api from "../lib/axios";
+import MapLegend from "../components/MapLegend";
+import {
+  FREE_MAP_STYLE_URL,
+  MAP_TINT_FILTER,
+  SEVERITY_CONFIG,
+  STATUS_LABELS,
+  CATEGORIES,
+  STATUSES,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  reportsToGeoJSON,
+  reportPopupHTML,
+} from "../lib/mapStyle";
 
-const SEVERITY_COLORS = { low: "green", medium: "orange", high: "darkorange", critical: "red" };
+const SEVERITIES = Object.keys(SEVERITY_CONFIG);
 
-const CATEGORIES = ["Road Damage", "Pothole", "Unclassified"];
-
-const STATUSES = ["pending", "verified", "assigned", "in_progress", "under_repair", "completed"];
-
-function MarkersLayer({ reports, navigate }) {
-  const map = useMap();
-
+// Layer laporan ter-cluster: MapLibre melakukan clustering di GPU lewat
+// sumber GeoJSON (`cluster: true`), jadi kita tidak butuh leaflet.markercluster
+// lagi — hasilnya lebih ringan untuk ribuan titik sekaligus.
+function ReportsLayer({ map, geojson, onReady }) {
   useEffect(() => {
-    const cluster = L.markerClusterGroup();
+    if (!map) return;
 
-    reports.forEach((r) => {
-      const color = SEVERITY_COLORS[r.severity] || "gray";
-      const icon = L.circleMarker([r.latitude, r.longitude], {
-        radius: 8, color, fillColor: color, fillOpacity: 0.8, weight: 1,
+    const setup = () => {
+      if (map.getSource("reports")) {
+        map.getSource("reports").setData(geojson);
+        return;
+      }
+
+      map.addSource("reports", {
+        type: "geojson",
+        data: geojson,
+        cluster: true,
+        clusterRadius: 46,
+        clusterMaxZoom: 15,
       });
-      icon.bindPopup(`
-        <div style="min-width:160px">
-          <b>${r.category || "Tidak diketahui"}</b><br/>
-          Severity: <span style="color:${color}">${r.severity || "—"}</span><br/>
-          Status: ${r.status}<br/>
-          <a href="/report/${r.id}" style="color:#3b82f6">Lihat Detail →</a>
-        </div>
-      `);
-      cluster.addLayer(icon);
-    });
 
-    map.addLayer(cluster);
-    return () => map.removeLayer(cluster);
-  }, [reports, map, navigate]);
+      map.addLayer({
+        id: "clusters",
+        type: "circle",
+        source: "reports",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": "#1A2E22",
+          "circle-opacity": 0.88,
+          "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 30, 26],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
+
+      map.addLayer({
+        id: "cluster-count",
+        type: "symbol",
+        source: "reports",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["Noto Sans Bold"],
+          "text-size": 12,
+        },
+        paint: { "text-color": "#ffffff" },
+      });
+
+      map.addLayer({
+        id: "unclustered-point",
+        type: "circle",
+        source: "reports",
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-radius": 8,
+          "circle-color": [
+            "match", ["get", "severity"],
+            "critical", SEVERITY_CONFIG.critical.color,
+            "high", SEVERITY_CONFIG.high.color,
+            "medium", SEVERITY_CONFIG.medium.color,
+            SEVERITY_CONFIG.low.color,
+          ],
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
+
+      // Klik cluster -> zoom masuk ke area itu
+      map.on("click", "clusters", (e) => {
+        const feature = e.features[0];
+        const clusterId = feature.properties.cluster_id;
+        map.getSource("reports").getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({ center: feature.geometry.coordinates, zoom });
+        });
+      });
+
+      // Klik titik tunggal -> popup detail laporan
+      map.on("click", "unclustered-point", (e) => {
+        const feature = e.features[0];
+        new maplibregl.Popup({ closeButton: true, maxWidth: "240px" })
+          .setLngLat(feature.geometry.coordinates)
+          .setHTML(reportPopupHTML(feature.properties))
+          .addTo(map);
+      });
+
+      ["clusters", "unclustered-point"].forEach((id) => {
+        map.on("mouseenter", id, () => (map.getCanvas().style.cursor = "pointer"));
+        map.on("mouseleave", id, () => (map.getCanvas().style.cursor = ""));
+      });
+
+      onReady?.();
+    };
+
+    if (map.isStyleLoaded()) setup();
+    else map.once("load", setup);
+  }, [map, geojson, onReady]);
 
   return null;
 }
 
 export default function MapPage() {
-  const navigate = useNavigate();
+  const containerRef = useRef(null);
+  const [map, setMap] = useState(null);
   const [reports, setReports] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [filters, setFilters] = useState({ severity: "", status: "", category: "" });
   const [loading, setLoading] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(true);
+
+  // Init peta sekali saja
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const instance = new maplibregl.Map({
+      container: containerRef.current,
+      style: FREE_MAP_STYLE_URL,
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      attributionControl: false,
+    });
+    instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    instance.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    instance.getCanvas().style.filter = MAP_TINT_FILTER;
+    setMap(instance);
+    return () => instance.remove();
+  }, []);
 
   useEffect(() => {
     api.get("/map/reports")
       .then((res) => {
-        // GeoJSON: { type: "FeatureCollection", features: [...] }
         const features = res.data.data?.features || [];
-        // Konversi GeoJSON feature ke format yang dipakai marker
         const items = features.map((f) => ({
           id: f.properties.id,
-          latitude: f.geometry.coordinates[1],   // GeoJSON: [lng, lat]
+          latitude: f.geometry.coordinates[1],
           longitude: f.geometry.coordinates[0],
           category: f.properties.category,
           severity: f.properties.severity,
@@ -64,91 +158,107 @@ export default function MapPage() {
           is_duplicate: f.properties.is_duplicate,
         }));
         setReports(items);
-        setFiltered(items);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    let data = reports;
-    if (filters.severity) data = data.filter((r) => r.severity === filters.severity);
-    if (filters.status) data = data.filter((r) => r.status === filters.status);
-    if (filters.category) data = data.filter((r) => r.category === filters.category);
-    setFiltered(data);
-  }, [filters, reports]);
+  const filtered = reports.filter((r) => {
+    if (filters.severity && r.severity !== filters.severity) return false;
+    if (filters.status && r.status !== filters.status) return false;
+    if (filters.category && r.category !== filters.category) return false;
+    return true;
+  });
+
+  const counts = filtered.reduce((acc, r) => {
+    acc[r.severity] = (acc[r.severity] || 0) + 1;
+    return acc;
+  }, {});
 
   const hasActiveFilters = filters.severity || filters.status || filters.category;
 
   return (
-    <div className="flex h-screen">
-      {/* Filter Panel */}
-      <div className="w-60 bg-white border-r border-[var(--border)] p-5 space-y-5 overflow-y-auto shrink-0 animate-rise-in">
-        <h2 className="font-display text-base font-semibold text-[var(--ink)]">Filter</h2>
+    <div className="relative h-[calc(100vh-64px)] w-full overflow-hidden">
+      {loading && <div className="absolute inset-0 skeleton rounded-none z-10" />}
 
-        {[
-          { label: "Tingkat Keparahan", key: "severity", options: ["low", "medium", "high", "critical"] },
-          { label: "Status", key: "status", options: STATUSES },
-          { label: "Kategori", key: "category", options: CATEGORIES },
-        ].map(({ label, key, options }) => (
-          <div key={key}>
-            <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1.5 uppercase tracking-wide">
-              {label}
-            </label>
-            <select
-              value={filters[key]}
-              onChange={(e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }))}
-              className="w-full border-b border-[var(--border)] bg-transparent pb-1.5 text-sm text-[var(--ink)]
-                        transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]
-                        focus:border-[var(--brand)] outline-none"
-            >
-              <option value="">Semua</option>
-              {options.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-        ))}
+      <div ref={containerRef} className="absolute inset-0" />
+      <ReportsLayer map={map} geojson={reportsToGeoJSON(filtered)} />
 
-        {/* Tombol "hapus filter" fade+scale in agar tidak muncul tiba-tiba
-            begitu user pilih filter pertama */}
-        <div
-          className={`overflow-hidden transition-[max-height,opacity] duration-[var(--dur-base)] ease-[var(--ease-out)] ${
-            hasActiveFilters ? "max-h-8 opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
+      {/* Panel filter mengambang di atas peta, bukan sidebar kaku yang makan tinggi layar */}
+      <div className="absolute top-4 left-4 z-10 w-64 animate-rise-in">
+        <div className="rounded-xl bg-white/90 backdrop-blur-md border border-[var(--border)] shadow-[0_8px_28px_rgba(15,23,42,0.12)] overflow-hidden">
           <button
-            onClick={() => setFilters({ severity: "", status: "", category: "" })}
-            className="text-xs text-[var(--brand)] hover:underline"
+            onClick={() => setPanelOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left"
           >
-            Hapus semua filter
+            <span className="font-display text-sm font-semibold text-[var(--ink)]">Filter</span>
+            <span
+              className={`text-[var(--ink-soft)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] ${
+                panelOpen ? "rotate-180" : ""
+              }`}
+            >
+              ▾
+            </span>
           </button>
-        </div>
 
-        <p
-          key={filtered.length}
-          className="text-xs text-[var(--ink-soft)] pt-3 border-t border-[var(--border)] animate-status-update"
-        >
-          {filtered.length} laporan ditampilkan
-        </p>
+          <div
+            className={`overflow-hidden transition-[max-height,opacity] duration-[var(--dur-base)] ease-[var(--ease-out)] ${
+              panelOpen ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <div className="px-4 pb-4 space-y-4">
+              {[
+                { label: "Tingkat Keparahan", key: "severity", options: SEVERITIES },
+                { label: "Status", key: "status", options: STATUSES },
+                { label: "Kategori", key: "category", options: CATEGORIES },
+              ].map(({ label, key, options }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1.5 uppercase tracking-wide">
+                    {label}
+                  </label>
+                  <select
+                    value={filters[key]}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }))}
+                    className="w-full border-b border-[var(--border)] bg-transparent pb-1.5 text-sm text-[var(--ink)]
+                              transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                              focus:border-[var(--brand)] outline-none"
+                  >
+                    <option value="">Semua</option>
+                    {options.map((o) => (
+                      <option key={o} value={o}>
+                        {key === "status" ? STATUS_LABELS[o] : o}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+
+              <div
+                className={`overflow-hidden transition-[max-height,opacity] duration-[var(--dur-base)] ease-[var(--ease-out)] ${
+                  hasActiveFilters ? "max-h-8 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <button
+                  onClick={() => setFilters({ severity: "", status: "", category: "" })}
+                  className="text-xs text-[var(--brand)] hover:underline"
+                >
+                  Hapus semua filter
+                </button>
+              </div>
+
+              <p
+                key={filtered.length}
+                className="text-xs text-[var(--ink-soft)] pt-3 border-t border-[var(--border)] animate-status-update"
+              >
+                {filtered.length} laporan ditampilkan
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Map */}
-      <div className="flex-1">
-        {loading ? (
-          <div className="h-full w-full skeleton rounded-none" />
-        ) : (
-          <div className="h-full w-full animate-rise-in">
-            <MapContainer
-              center={[-6.2, 106.8]}
-              zoom={12}
-              style={{ height: "100%", width: "100%" }}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
-              <MarkersLayer reports={filtered} navigate={navigate} />
-            </MapContainer>
-          </div>
-        )}
+      {/* Legenda mengambang, pojok kiri bawah */}
+      <div className="absolute bottom-5 left-4 z-10">
+        <MapLegend counts={counts} />
       </div>
     </div>
   );
