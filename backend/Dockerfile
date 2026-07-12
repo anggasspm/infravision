@@ -2,8 +2,11 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Dependency sistem yang dibutuhkan opencv-python-headless
+# Dependency sistem yang dibutuhkan opencv-python-headless / ultralytics.
+# libgl1 wajib ada karena cv2 (dipanggil dari ultralytics) mencari libGL.so.1
+# saat import, meskipun kita jalan headless tanpa display sama sekali.
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
