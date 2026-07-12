@@ -1,66 +1,51 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import BellIcon from "../icons/BellIcon";
 
-const NAV_ITEMS = [
-  { to: "/submit", label: "Laporkan" },
-  { to: "/lacak", label: "Lacak Laporan" },
-];
-
-const NAV_ITEMS_LOGGED_IN = [
-  { to: "/map", label: "Peta" },
-  { to: "/my-reports", label: "Laporan Saya" },
-];
+function LogoMark() {
+  return (
+    <div
+      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+      style={{ background: "var(--brand)" }}
+      aria-hidden="true"
+    >
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+    </div>
+  );
+}
 
 export default function Navbar({ hasUnreadNotifications = false }) {
   const { user, logout } = useAuth();
-  const { pathname } = useLocation();
-
-  const items = user ? [...NAV_ITEMS, ...NAV_ITEMS_LOGGED_IN] : NAV_ITEMS;
 
   return (
-    <header className="border-b border-[var(--border)] bg-white">
-      <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header className="border-b border-[var(--border)] bg-white relative z-30">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link
           to="/"
-          className="font-display text-lg font-semibold text-[var(--brand)]
-                     transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-out)] hover:opacity-70"
+          className="flex items-center gap-2.5 transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-out)] hover:opacity-80"
         >
-          InfraVision
+          <LogoMark />
+          <span className="font-display text-lg font-semibold text-[var(--ink)] leading-none">
+            InfraVision
+          </span>
         </Link>
-
-        <nav className="hidden md:flex items-center gap-1">
-          {items.map((item) => {
-            const active = pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`relative px-3 py-2 text-sm rounded-md
-                            transition-colors duration-[var(--dur-base)] ease-[var(--ease-in-out)]
-                            ${
-                              active
-                                ? "text-[var(--brand)] font-medium"
-                                : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
-                            }`}
-              >
-                {item.label}
-                {/* Sliding underline: transform scale jauh lebih murah secara
-                    performa daripada animasi width, dan terasa lebih premium
-                    daripada background block on/off */}
-                <span
-                  className={`absolute left-3 right-3 -bottom-[1px] h-[2px] rounded-full bg-[var(--brand)]
-                              origin-left transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)]
-                              ${active ? "scale-x-100" : "scale-x-0"}`}
-                />
-              </Link>
-            );
-          })}
-        </nav>
 
         <div className="flex items-center gap-4">
           {user ? (
             <>
+              <Link
+                to="/my-reports"
+                className="hidden sm:inline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]
+                           transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+              >
+                Laporan Saya
+              </Link>
+
+              <span className="hidden sm:inline-block w-px h-4 bg-[var(--border)]" aria-hidden="true" />
+
               <Link
                 to="/notifications"
                 className="text-[var(--ink-soft)] hover:text-[var(--ink)]
@@ -69,22 +54,35 @@ export default function Navbar({ hasUnreadNotifications = false }) {
               >
                 <BellIcon hasUnread={hasUnreadNotifications} />
               </Link>
+
               <button
                 onClick={logout}
-                className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]
-                           transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+                className="text-sm font-medium text-[var(--ink)] bg-[var(--paper)] border border-[var(--border)]
+                           rounded-full px-3.5 py-1.5
+                           transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                           hover:border-[var(--brand)] hover:text-[var(--brand)]"
               >
                 {user.name?.split(" ")[0]} · Keluar
               </button>
             </>
           ) : (
-            <Link
-              to="/login"
-              className="text-sm font-medium text-[var(--brand)]
-                         transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-out)] hover:opacity-70"
-            >
-              Masuk
-            </Link>
+            <>
+              <Link
+                to="/lacak"
+                className="hidden sm:inline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]
+                           transition-colors duration-[var(--dur-fast)] ease-[var(--ease-out)]"
+              >
+                Lacak Laporan
+              </Link>
+              <Link
+                to="/login"
+                className="text-sm font-medium text-white bg-[var(--brand)] rounded-full px-4 py-1.5
+                           transition-[background-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)]
+                           hover:bg-[#13231A] hover:shadow-[0_2px_8px_rgba(26,46,34,0.25)]"
+              >
+                Masuk
+              </Link>
+            </>
           )}
         </div>
       </div>

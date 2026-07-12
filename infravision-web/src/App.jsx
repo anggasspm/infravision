@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleRoute from "./routes/RoleRoute";
@@ -6,7 +6,6 @@ import Navbar from "./components/layout/Navbar";
 
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import HomePage from "./pages/HomePage";
 import SubmitReportPage from "./pages/SubmitReportPage";
 import TrackReportPage from "./pages/TrackReportPage";
 import ReportDetailPage from "./pages/ReportDetailPage";
@@ -21,7 +20,12 @@ function AnimatedRoutes() {
   return (
     <div key={location.pathname} className="animate-page-in">
       <Routes location={location}>
-        {/* Public */}
+        {/* Peta laporan = landing page. Publik, tidak perlu login supaya
+            siapapun yang baru masuk langsung lihat data hidup + bisa lapor. */}
+        <Route path="/" element={<MapPage />} />
+        {/* /map dipertahankan sebagai alias supaya tautan lama tidak putus */}
+        <Route path="/map" element={<Navigate to="/" replace />} />
+
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
@@ -29,9 +33,7 @@ function AnimatedRoutes() {
         <Route path="/lacak" element={<TrackReportPage />} />
 
         {/* Protected — semua role */}
-        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/report/:id" element={<ProtectedRoute><ReportDetailPage /></ProtectedRoute>} />
-        <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
         <Route path="/my-reports" element={<ProtectedRoute><MyReportsPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
