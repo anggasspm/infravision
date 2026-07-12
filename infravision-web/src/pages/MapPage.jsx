@@ -190,6 +190,7 @@ export default function MapPage() {
   // Init peta sekali saja
   useEffect(() => {
     if (!containerRef.current) return;
+
     const instance = new maplibregl.Map({
       container: containerRef.current,
       style: FREE_MAP_STYLE_URL,
@@ -199,9 +200,29 @@ export default function MapPage() {
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     instance.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
-    instance.getCanvas().style.filter = MAP_TINT_FILTER;
+
+    instance.on("error", (e) => {
+      console.error("MapLibre error:", e.error || e);
+    });
+
+    instance.on("load", () => {
+      instance.getCanvas().style.filter = MAP_TINT_FILTER;
+      instance.resize();
+    });
+
     setMap(instance);
-    return () => instance.remove();
+
+    // Paksa peta resize setiap kali ukuran container-nya benar-benar berubah
+    // (misal toolbar wrap ke 2 baris di layar kecil, atau layout flex baru
+    // selesai dihitung browser). Ini yang sering hilang saat peta dibungkus
+    // flex/grid layout — canvas WebGL tidak auto-resize sendiri.
+    const resizeObserver = new ResizeObserver(() => instance.resize());
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      instance.remove();
+    };
   }, []);
 
   // Muat data pertama kali, lalu polling ringan supaya peta terasa "hidup"
