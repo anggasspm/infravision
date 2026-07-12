@@ -1,5 +1,5 @@
 
-export const FREE_MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+export const FREE_MAP_STYLE_URL = "https://demotiles.maplibre.org/style.json"; // TEMP: buat tes
 
 export const MAP_TINT_FILTER =
   "sepia(0.22) saturate(1.15) hue-rotate(-6deg) brightness(1.03) contrast(0.96)";
